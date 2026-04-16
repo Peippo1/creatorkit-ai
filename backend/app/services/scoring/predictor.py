@@ -12,24 +12,39 @@ def _clamp(value: int) -> int:
 
 
 def _hook_score(payload: AnalyzeRequest) -> int:
-    count = _word_count(payload.hook)
     score = 50
-    if 5 <= count <= 12:
+    count = _word_count(payload.hook)
+
+    if count == 0:
+        score -= 10
+    elif 5 <= count <= 12:
         score += 10
+    else:
+        score += 4
+
     return _clamp(score)
 
 
 def _clarity_score(payload: AnalyzeRequest) -> int:
     score = 50
-    if _word_count(payload.caption) > 0 or _word_count(payload.transcript) > 0:
-        score += 10
+
+    if _word_count(payload.caption) > 0:
+        score += 5
+    if _word_count(payload.transcript) > 0:
+        score += 5
+
+    if _word_count(payload.caption) == 0 and _word_count(payload.transcript) == 0:
+        score -= 5
+
     return _clamp(score)
 
 
 def _platform_fit_score(payload: AnalyzeRequest) -> int:
     score = 50
-    if payload.duration_seconds < 60:
+    if 0 < payload.duration_seconds <= 60:
         score += 10
+    elif payload.duration_seconds > 60:
+        score -= 5
     return _clamp(score)
 
 

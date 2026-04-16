@@ -11,5 +11,5 @@ router = APIRouter(tags=["analysis"])
 @router.post("/analyze", response_model=AnalyzeResponse)
 def analyze(payload: AnalyzeRequest) -> AnalyzeResponse:
     scores = score_submission(payload)
-    feedback = build_feedback(payload)
+    feedback = build_feedback(payload, scores)
     return AnalyzeResponse(**scores, **feedback)
