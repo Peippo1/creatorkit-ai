@@ -13,6 +13,12 @@ It also includes supporting visual insights, feature importance analysis, and re
 - Shared constants and helper logic now live in `streamsense/notebook_utils.py`
 - The `is_hit` target in Notebook 02 is still a demo heuristic, not a ground-truth popularity label
 
+## Repository Layout
+
+- `research/` holds preserved notebooks, SQL-style query notebooks, and dashboard exports
+- `docs/` holds human-facing documentation
+- `assets/images/` holds exported plots and other shared image assets
+
 ---
 
 ## 🎯 Objective
@@ -79,18 +85,18 @@ Breaks down hit-rate patterns across:
 
 Images:
 
-![Hit rate by category](hit_rate_by_category.png)
+![Hit rate by category](assets/images/hit_rate_by_category.png)
 
-![Hit rate by rating](hit_rate_by_rating.png)
+![Hit rate by rating](assets/images/hit_rate_by_rating.png)
 
-![Hit rate by year](hit_rate_by_year.png)
+![Hit rate by year](assets/images/hit_rate_by_year.png)
 ---
 
 ### 5. 🌟 Feature Importance
 
 Extracts encoded categorical features from the model's preprocessing pipeline and ranks all signals by their contribution to prediction.
 
-![Feature importance](feature_importance.png)
+![Feature importance](assets/images/feature_importance.png)
 
 
 ---
