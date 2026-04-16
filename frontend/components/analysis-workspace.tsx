@@ -58,9 +58,9 @@ export function AnalysisWorkspace() {
         onFieldChange={updateField}
       />
 
-      <div className="stack">
+      <div className="result-stack">
         {error ? (
-          <aside className="panel">
+          <aside className="panel error-panel" role="alert">
             <h2>Backend error</h2>
             <p>{error}</p>
             <p className="muted">Start the FastAPI backend and try again.</p>

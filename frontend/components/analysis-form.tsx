@@ -37,18 +37,20 @@ export function AnalysisForm({
 }: AnalysisFormProps) {
   return (
     <form className="panel form" onSubmit={onSubmit}>
-      <div>
-        <h2>Draft analysis</h2>
+      <div className="form-intro">
+        <span className="panel-label">Input</span>
+        <h3>Draft analysis</h3>
         <p>Submit a draft or idea and get a quick pre-publish review.</p>
       </div>
 
       <div className="form-grid">
         <div className="field">
-          <label htmlFor="platform">Platform</label>
+          <label htmlFor="platform">Publishing platform</label>
           <select
             id="platform"
             value={value.platform}
             onChange={(event) => onFieldChange("platform", event.target.value)}
+            required
           >
             {PLATFORM_OPTIONS.map((option) => (
               <option key={option} value={option}>
@@ -59,11 +61,12 @@ export function AnalysisForm({
         </div>
 
         <div className="field">
-          <label htmlFor="content_type">Content type</label>
+          <label htmlFor="content_type">Content format</label>
           <select
             id="content_type"
             value={value.content_type}
             onChange={(event) => onFieldChange("content_type", event.target.value)}
+            required
           >
             {CONTENT_TYPE_OPTIONS.map((option) => (
               <option key={option} value={option}>
@@ -74,7 +77,7 @@ export function AnalysisForm({
         </div>
 
         <div className="field">
-          <label htmlFor="duration_seconds">Duration seconds</label>
+          <label htmlFor="duration_seconds">Duration in seconds</label>
           <input
             id="duration_seconds"
             type="number"
@@ -82,47 +85,54 @@ export function AnalysisForm({
             step={1}
             value={value.duration_seconds}
             onChange={(event) => onFieldChange("duration_seconds", Number(event.target.value))}
+            required
+            placeholder="35"
           />
         </div>
 
         <div className="field">
-          <label htmlFor="niche">Niche</label>
+          <label htmlFor="niche">Audience niche</label>
           <input
             id="niche"
             value={value.niche}
             onChange={(event) => onFieldChange("niche", event.target.value)}
             placeholder="e.g. fitness creators"
+            required
           />
         </div>
 
         <div className="field full">
-          <label htmlFor="hook">Hook</label>
+          <label htmlFor="hook">Hook / opener</label>
           <input
             id="hook"
             value={value.hook}
             onChange={(event) => onFieldChange("hook", event.target.value)}
-            placeholder="The first line or opening angle"
+            placeholder="Lead with the strongest idea"
+            required
           />
-          <p className="help">Keep the hook tight and specific.</p>
+          <small>Keep this tight, specific, and worth stopping for.</small>
         </div>
 
         <div className="field full">
-          <label htmlFor="caption">Caption</label>
+          <label htmlFor="caption">Caption / post copy</label>
           <textarea
             id="caption"
             value={value.caption}
             onChange={(event) => onFieldChange("caption", event.target.value)}
             placeholder="Paste the caption or post copy"
+            required
           />
+          <small>Short captions can still be useful if they carry the idea clearly.</small>
         </div>
 
         <div className="field full">
-          <label htmlFor="transcript">Transcript</label>
+          <label htmlFor="transcript">Transcript / long-form copy</label>
           <textarea
             id="transcript"
             value={value.transcript}
             onChange={(event) => onFieldChange("transcript", event.target.value)}
             placeholder="Paste the spoken script or body copy"
+            required
           />
         </div>
       </div>
@@ -141,7 +151,7 @@ export function AnalysisForm({
         <button className="button" type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Analyzing..." : "Analyze draft"}
         </button>
-        <span className="secondary">This connects to the local FastAPI backend.</span>
+        <span className="helper">This connects to the local FastAPI backend.</span>
       </div>
     </form>
   )
