@@ -4,12 +4,12 @@ import type { FormEvent } from "react"
 import { useState } from "react"
 
 import { analyzeContent } from "@/lib/api"
-import type { AnalyzeInput, AnalyzeOutput } from "@/lib/types"
+import type { AnalyzeRequest, AnalyzeResponse } from "@/lib/types"
 
 import { AnalysisForm } from "./analysis-form"
 import { ResultCard } from "./result-card"
 
-const DEFAULT_FORM: AnalyzeInput = {
+const DEFAULT_FORM: AnalyzeRequest = {
   platform: "TikTok",
   content_type: "Short-form video",
   hook: "Most creators miss this one edit before publishing.",
@@ -21,12 +21,12 @@ const DEFAULT_FORM: AnalyzeInput = {
 }
 
 export function AnalysisWorkspace() {
-  const [form, setForm] = useState<AnalyzeInput>(DEFAULT_FORM)
-  const [result, setResult] = useState<AnalyzeOutput | null>(null)
+  const [form, setForm] = useState<AnalyzeRequest>(DEFAULT_FORM)
+  const [result, setResult] = useState<AnalyzeResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  function updateField<K extends keyof AnalyzeInput>(field: K, nextValue: AnalyzeInput[K]) {
+  function updateField<K extends keyof AnalyzeRequest>(field: K, nextValue: AnalyzeRequest[K]) {
     setForm((current) => ({
       ...current,
       [field]: nextValue,
@@ -37,6 +37,7 @@ export function AnalysisWorkspace() {
     event.preventDefault()
     setIsSubmitting(true)
     setError(null)
+    setResult(null)
 
     try {
       const analysis = await analyzeContent(form)
@@ -66,7 +67,7 @@ export function AnalysisWorkspace() {
           </aside>
         ) : null}
 
-        <ResultCard result={result} />
+        <ResultCard result={result} isSubmitting={isSubmitting} />
       </div>
     </div>
   )

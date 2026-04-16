@@ -1,4 +1,4 @@
-export type AnalyzeInput = {
+export type AnalyzeRequest = {
   platform: string
   content_type: string
   hook: string
@@ -9,7 +9,7 @@ export type AnalyzeInput = {
   has_cta: boolean
 }
 
-export type AnalyzeOutput = {
+export type AnalyzeResponse = {
   overall_score: number
   hook_score: number
   clarity_score: number
@@ -19,3 +19,6 @@ export type AnalyzeOutput = {
   critique: string
   suggestions: string[]
 }
+
+export type AnalyzeInput = AnalyzeRequest
+export type AnalyzeOutput = AnalyzeResponse

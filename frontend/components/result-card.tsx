@@ -1,7 +1,8 @@
-import type { AnalyzeOutput } from "@/lib/types"
+import type { AnalyzeResponse } from "@/lib/types"
 
 type ResultCardProps = {
-  result: AnalyzeOutput | null
+  result: AnalyzeResponse | null
+  isSubmitting: boolean
 }
 
 function scoreLabel(score: number): string {
@@ -17,7 +18,21 @@ function scoreLabel(score: number): string {
   return "Early"
 }
 
-export function ResultCard({ result }: ResultCardProps) {
+export function ResultCard({ result, isSubmitting }: ResultCardProps) {
+  if (isSubmitting && !result) {
+    return (
+      <aside className="panel result-card">
+        <div>
+          <h2>Analysis result</h2>
+          <p className="muted">Analyzing your draft with the local backend...</p>
+        </div>
+        <div className="empty-state">
+          Working on your score, critique, and suggestions.
+        </div>
+      </aside>
+    )
+  }
+
   if (!result) {
     return (
       <aside className="panel result-card">
@@ -33,7 +48,6 @@ export function ResultCard({ result }: ResultCardProps) {
   }
 
   const metrics = [
-    { label: "Overall", value: result.overall_score },
     { label: "Hook", value: result.hook_score },
     { label: "Clarity", value: result.clarity_score },
     { label: "Platform fit", value: result.platform_fit_score },

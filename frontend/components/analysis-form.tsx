@@ -1,12 +1,12 @@
 import type { FormEvent } from "react"
 
-import type { AnalyzeInput } from "@/lib/types"
+import type { AnalyzeRequest } from "@/lib/types"
 
 type AnalysisFormProps = {
-  value: AnalyzeInput
+  value: AnalyzeRequest
   isSubmitting: boolean
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
-  onFieldChange: <K extends keyof AnalyzeInput>(field: K, nextValue: AnalyzeInput[K]) => void
+  onFieldChange: <K extends keyof AnalyzeRequest>(field: K, nextValue: AnalyzeRequest[K]) => void
 }
 
 const PLATFORM_OPTIONS = [
