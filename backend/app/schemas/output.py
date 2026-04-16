@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class AnalyzeOutput(BaseModel):
+class AnalyzeResponse(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     overall_score: int = Field(..., ge=0, le=100)
@@ -12,3 +12,6 @@ class AnalyzeOutput(BaseModel):
     risks: list[str]
     critique: str
     suggestions: list[str]
+
+
+AnalyzeOutput = AnalyzeResponse
