@@ -1,149 +1,67 @@
 
 
-# 📊 StreamSense — Hit Predictor Demo
+# CreatorKit AI
 
-This notebook provides the final, demo-ready stage of the **StreamSense** pipeline — showcasing how a trained Machine Learning model can predict whether a Netflix title is likely to become a *hit*, based purely on metadata.
+CreatorKit AI is the next-stage product built from the StreamSense notebook prototype. The original notebook work is preserved under `research/` as legacy research artifacts, while the repo now also contains a clean web app scaffold for scoring creator content before publication.
 
-It also includes supporting visual insights, feature importance analysis, and reusable Delta tables for dashboarding.
+The app direction is simple:
 
-## Reproducibility
-
-- Install the local Python dependencies with `pip install -r requirements.txt`
-- Run the notebooks in a Spark-enabled environment such as Databricks
-- Shared constants and helper logic now live in `streamsense/notebook_utils.py`
-- The `is_hit` target in Notebook 02 is still a demo heuristic, not a ground-truth popularity label
+- users submit a content idea, draft, hook, caption, or transcript
+- the system returns a performance score
+- the system explains the weak points
+- the system suggests edits before publishing
 
 ## Repository Layout
 
-- `research/` holds preserved notebooks, SQL-style query notebooks, and dashboard exports
-- `docs/` holds human-facing documentation
-- `assets/images/` holds exported plots and other shared image assets
+- `backend/` contains the FastAPI service
+- `frontend/` contains the Next.js + TypeScript app
+- `research/` contains preserved notebooks, query notebooks, and dashboard exports
+- `assets/images/` contains exported plots and shared images
+- `docs/` contains product vision, MVP, and architecture notes
+- `streamsense/` remains in place for the legacy notebook helpers
 
----
+## Setup
 
-## 🎯 Objective
+### Backend
 
-Demonstrate the StreamSense Random Forest model through:
-
-- Interactive **What-If** predictions  
-- Hit-rate analytics (category, rating, release year)  
-- Feature importance visualisation  
-- Model loading + inference pipeline using MLflow  
-
-This notebook represents the final part of the project workflow:
-
-1. **Data ingestion**  
-2. **Feature engineering**  
-3. **Model training & MLflow tracking**  
-4. **Hit predictor demo** ← *this notebook*
-
----
-
-## 📁 Notebook Contents
-
-### 1. Load Cleaned Dataset  
-Loads `netflix_clean` (Delta table) created earlier in the pipeline and previews schema + sample rows.
-
----
-
-### 2. Load Latest MLflow Model  
-Retrieves the **most recent run** from the StreamSense experiment and loads the stored model via:
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
 ```
-runs:/<latest_run_id>/model
+
+Backend endpoints:
+
+- `GET /health`
+- `POST /analyze`
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
 ```
-Ensures reproducibility and traceability.
 
----
+By default the frontend expects the backend at `http://localhost:8000`. You can override that with `NEXT_PUBLIC_API_BASE_URL`.
 
-### 3. 🔮 What-If Prediction Helper
+## What the First Version Does
 
-Allows users to test hypothetical titles by specifying:
+- accepts platform, content type, hook, caption, transcript, duration, niche, and CTA intent
+- returns an overall score and sub-scores for hook, clarity, and platform fit
+- returns strengths, risks, critique, and suggestions
+- provides a clean landing page and analysis form
 
-- Category  
-- Rating  
-- Release year  
-- Duration  
-- Movie vs TV  
-- Country  
+## Legacy Research
 
-Returns:
+The original StreamSense notebooks are kept intact under `research/` so the repo still preserves the full notebook-based exploration history. The `streamsense` Python package also stays in place for compatibility with those artifacts.
 
-- **Predicted hit probability**  
-- **Predicted class (HIT / NON-HIT)**  
+## Roadmap
 
-Perfect for demos, dashboards, or UI integration.
-
----
-
-### 4. 📈 Visual Exploration
-
-Breaks down hit-rate patterns across:
-
-- **Category** (Movie vs TV Show)  
-- **Rating** (e.g. TV-MA, PG, TV-Y7…)  
-- **Release year** (hit rates over time)
-
-Images:
-
-![Hit rate by category](assets/images/hit_rate_by_category.png)
-
-![Hit rate by rating](assets/images/hit_rate_by_rating.png)
-
-![Hit rate by year](assets/images/hit_rate_by_year.png)
----
-
-### 5. 🌟 Feature Importance
-
-Extracts encoded categorical features from the model's preprocessing pipeline and ranks all signals by their contribution to prediction.
-
-![Feature importance](assets/images/feature_importance.png)
-
-
----
-
-### 6. Example What-If Scenarios
-
-Includes three demo-ready examples:
-
-- A modern, mature-rated movie  
-- An older children’s TV show  
-- A recent family film  
-
-These illustrate how metadata changes alter prediction confidence.
-
----
-
-### 7. 📦 Persisted Aggregates for Dashboards
-
-Stores the following as Delta tables for downstream visualisation:
-
-- `streamsense_hit_by_category`  
-- `streamsense_hit_by_rating`  
-- `streamsense_hit_by_year`  
-
-These feed perfectly into:
-
-- Databricks SQL dashboards  
-- Power BI  
-- Streamlit  
-
----
-
-## ✔️ Outputs Summary
-
-This notebook delivers:
-
-- Fully working **What-If predictor**  
-- All key hit-rate analytics (with PNG exports)  
-- End-to-end MLflow model retrieval  
-- Feature importance ranking  
-- Clean dashboard-ready aggregates  
-
----
-
-## 🚀 Next Steps (Optional Enhancements)
-
-- Build a **Streamlit UI** around the What-If predictor  
-- Replace the heuristic `is_hit` label with one derived from **IMDb** or **TMDb**  
-- Enrich model inputs using **text embeddings** (descriptions, cast, director)  
-- Add confidence intervals, SHAP explainability, or scenario comparison tools  
+- persist analyses and user history
+- add authentication and creator accounts
+- replace the heuristic scorer with a trained model or hybrid rules layer
+- add content templates and saved drafts
+- add team review and sharing workflows
