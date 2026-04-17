@@ -2,6 +2,55 @@ from __future__ import annotations
 
 from ...schemas.input import AnalyzeRequest
 
+SHORT_FORM_PLATFORMS = {
+    "tiktok",
+    "instagram",
+    "instagram reels",
+    "reels",
+    "youtube shorts",
+    "shorts",
+}
+
+LONG_FORM_PLATFORMS = {
+    "youtube",
+}
+
+TEXT_FIRST_PLATFORMS = {
+    "linkedin",
+    "threads",
+    "x",
+}
+
+HOOK_CURIOSITY_WORDS = {
+    "how",
+    "why",
+    "what",
+    "before",
+    "after",
+    "mistake",
+    "secret",
+    "stop",
+    "instead",
+    "3",
+    "5",
+    "7",
+}
+
+HOOK_VAGUE_WORDS = {
+    "thing",
+    "things",
+    "stuff",
+    "something",
+    "interesting",
+    "nice",
+    "good",
+    "better",
+}
+
+
+def _normalize(text: str) -> str:
+    return " ".join(text.lower().split())
+
 
 def _word_count(text: str) -> int:
     return len([part for part in text.split() if part])
@@ -12,39 +61,131 @@ def _clamp(value: int) -> int:
 
 
 def _hook_score(payload: AnalyzeRequest) -> int:
-    score = 50
+    hook = _normalize(payload.hook)
+    score = 44
     count = _word_count(payload.hook)
 
     if count == 0:
-        score -= 10
-    elif 5 <= count <= 12:
+        return 0
+
+    if 5 <= count <= 12:
+        score += 18
+    elif 3 <= count <= 15:
         score += 10
     else:
-        score += 4
+        score += 2
+
+    if any(word in hook.split() for word in HOOK_CURIOSITY_WORDS):
+        score += 6
+    if any(word in hook.split() for word in HOOK_VAGUE_WORDS):
+        score -= 6
+    if count < 4:
+        score -= 8
+    if count > 18:
+        score -= 8
 
     return _clamp(score)
 
 
 def _clarity_score(payload: AnalyzeRequest) -> int:
-    score = 50
+    score = 42
+    caption_words = _word_count(payload.caption)
+    transcript_words = _word_count(payload.transcript)
+    niche_words = _word_count(payload.niche)
+    content_type = _normalize(payload.content_type)
 
-    if _word_count(payload.caption) > 0:
-        score += 5
-    if _word_count(payload.transcript) > 0:
-        score += 5
+    if caption_words >= 12:
+        score += 12
+    elif caption_words >= 4:
+        score += 6
+    elif caption_words > 0:
+        score += 2
+    else:
+        score -= 6
 
-    if _word_count(payload.caption) == 0 and _word_count(payload.transcript) == 0:
-        score -= 5
+    if transcript_words >= 60:
+        score += 12
+    elif transcript_words >= 20:
+        score += 8
+    elif transcript_words > 0:
+        score += 4
+    else:
+        score -= 10
+
+    if caption_words > 0 and transcript_words > 0:
+        score += 6
+    if niche_words > 0:
+        score += 4
+
+    if "carousel" in content_type or "thread" in content_type or "post" in content_type:
+        if caption_words >= 20:
+            score += 4
+        else:
+            score -= 3
+
+    if "script" in content_type or "video" in content_type or "tutorial" in content_type:
+        if transcript_words >= 40:
+            score += 4
+        else:
+            score -= 4
 
     return _clamp(score)
 
 
 def _platform_fit_score(payload: AnalyzeRequest) -> int:
-    score = 50
-    if 0 < payload.duration_seconds <= 60:
-        score += 10
-    elif payload.duration_seconds > 60:
-        score -= 5
+    score = 45
+    platform = _normalize(payload.platform)
+    content_type = _normalize(payload.content_type)
+    duration = payload.duration_seconds
+
+    if platform in SHORT_FORM_PLATFORMS:
+        if 15 <= duration <= 45:
+            score += 20
+        elif 10 <= duration <= 60:
+            score += 14
+        elif 61 <= duration <= 90:
+            score += 6
+        else:
+            score -= 10
+    elif platform in LONG_FORM_PLATFORMS:
+        if 60 <= duration <= 240:
+            score += 18
+        elif 30 <= duration < 60 or 241 <= duration <= 420:
+            score += 10
+        else:
+            score -= 4
+    elif platform in TEXT_FIRST_PLATFORMS:
+        if duration <= 90:
+            score += 12
+        elif duration <= 180:
+            score += 6
+        else:
+            score -= 6
+    else:
+        if duration <= 120:
+            score += 10
+        else:
+            score -= 3
+
+    if "long-form" in content_type or "tutorial" in content_type:
+        if duration >= 45:
+            score += 4
+        else:
+            score -= 4
+    elif "short-form" in content_type or "hook-led" in content_type:
+        if duration <= 60:
+            score += 4
+        else:
+            score -= 6
+    elif "carousel" in content_type or "thread" in content_type or "post" in content_type:
+        if duration <= 90:
+            score += 4
+        else:
+            score -= 4
+
+    if payload.has_cta:
+        score += 3
+
     return _clamp(score)
 
 
@@ -52,13 +193,15 @@ def score_submission(payload: AnalyzeRequest) -> dict[str, int]:
     hook_score = _hook_score(payload)
     clarity_score = _clarity_score(payload)
     platform_fit_score = _platform_fit_score(payload)
-    overall_score = 50
-    if 5 <= _word_count(payload.hook) <= 12:
-        overall_score += 10
+    overall_score = round(
+        (hook_score * 0.42) + (clarity_score * 0.33) + (platform_fit_score * 0.25)
+    )
     if payload.has_cta:
-        overall_score += 10
-    if payload.duration_seconds < 60:
-        overall_score += 10
+        overall_score += 4
+    else:
+        overall_score -= 4
+    if hook_score >= 75 and clarity_score >= 70 and platform_fit_score >= 70:
+        overall_score += 3
     overall_score = _clamp(overall_score)
 
     return {
