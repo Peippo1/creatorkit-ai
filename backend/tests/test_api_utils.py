@@ -25,6 +25,23 @@ class ApiUtilsTests(unittest.TestCase):
     def test_resolve_account_key_allows_fallback_identity(self) -> None:
         self.assertEqual(resolve_account_key(fallback="anonymous"), "anonymous")
 
+    def test_resolve_account_key_rejects_untrusted_user_identity(self) -> None:
+        with self.assertRaises(HTTPException):
+            resolve_account_key(account_key="user:abc12345")
+
+    def test_resolve_account_key_rejects_trusted_user_mismatch(self) -> None:
+        with self.assertRaises(HTTPException):
+            resolve_account_key(
+                account_key="session:abc12345",
+                trusted_account_key="user:abc12345",
+            )
+
+    def test_resolve_account_key_allows_trusted_user_identity(self) -> None:
+        self.assertEqual(
+            resolve_account_key(trusted_account_key="user:abc12345"),
+            "user:abc12345",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

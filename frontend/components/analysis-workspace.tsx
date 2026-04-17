@@ -6,12 +6,11 @@ import { useUser } from "@clerk/nextjs"
 
 import {
   analyzeContent,
-  getCreatorAccountWithMetadata,
+  getCreatorAccount,
   listAnalysisHistory,
   listSavedDrafts,
   saveDraft,
 } from "@/lib/api"
-import { getAccountKey } from "@/lib/identity"
 import { getAnalysisSessionId } from "@/lib/session"
 import type {
   AnalyzeRequest,
@@ -73,19 +72,17 @@ export function AnalysisWorkspace() {
     setClientId(getAnalysisSessionId())
   }, [])
 
-  const accountKey = getAccountKey(user?.id ?? null, clientId)
-  const isAuthenticated = Boolean(isLoaded && user && accountKey?.startsWith("user:"))
+  const isAuthenticated = Boolean(isLoaded && user?.id)
 
   useEffect(() => {
-    const workspaceKey = accountKey ?? clientId
-
-    if (!workspaceKey) {
+    if (!isAuthenticated && !clientId) {
       return
     }
 
     let cancelled = false
 
     async function loadWorkspaceData() {
+      const sessionId = isAuthenticated ? undefined : clientId
       setIsHistoryLoading(true)
       setIsDraftsLoading(true)
       setIsAccountLoading(true)
@@ -93,15 +90,9 @@ export function AnalysisWorkspace() {
       setHistoryError(null)
       setDraftsError(null)
 
-      const historyRequest = listAnalysisHistory(workspaceKey)
-      const draftsRequest = listSavedDrafts(workspaceKey)
-      const accountRequest =
-        isAuthenticated && accountKey
-          ? getCreatorAccountWithMetadata(accountKey, {
-              email: user?.primaryEmailAddress?.emailAddress ?? undefined,
-              displayName: user?.fullName ?? user?.username ?? undefined,
-            })
-          : null
+      const historyRequest = listAnalysisHistory(sessionId)
+      const draftsRequest = listSavedDrafts(sessionId)
+      const accountRequest = isAuthenticated ? getCreatorAccount() : null
 
       const [historyResult, draftsResult] = await Promise.allSettled([historyRequest, draftsRequest])
       const accountResult = accountRequest ? await Promise.allSettled([accountRequest]) : null
@@ -158,9 +149,9 @@ export function AnalysisWorkspace() {
     return () => {
       cancelled = true
     }
-  }, [accountKey, clientId, isAuthenticated, user])
+  }, [clientId, isAuthenticated])
 
-  async function refreshHistory(nextClientId: string) {
+  async function refreshHistory(nextClientId?: string) {
     try {
       const response = await listAnalysisHistory(nextClientId)
       setHistoryEntries(response.entries)
@@ -172,7 +163,7 @@ export function AnalysisWorkspace() {
     }
   }
 
-  async function refreshDrafts(nextClientId: string, preferredDraftId: number | null = null) {
+  async function refreshDrafts(nextClientId?: string, preferredDraftId: number | null = null) {
     try {
       const response = await listSavedDrafts(nextClientId)
       setDraftEntries(response.entries)
@@ -187,12 +178,9 @@ export function AnalysisWorkspace() {
     }
   }
 
-  async function refreshAccount(nextAccountKey: string) {
+  async function refreshAccount() {
     try {
-      const response = await getCreatorAccountWithMetadata(nextAccountKey, {
-        email: user?.primaryEmailAddress?.emailAddress ?? undefined,
-        displayName: user?.fullName ?? user?.username ?? undefined,
-      })
+      const response = await getCreatorAccount()
       setCreatorAccount(response)
       setAccountError(null)
     } catch (accountLoadError) {
@@ -219,15 +207,14 @@ export function AnalysisWorkspace() {
 
     try {
       const nextSessionId = clientId ?? getAnalysisSessionId()
-      if (!clientId) {
+      if (!clientId && !isAuthenticated) {
         setClientId(nextSessionId)
       }
-      const nextAccountKey = accountKey ?? getAccountKey(user?.id ?? null, nextSessionId)
-      const analysis = await analyzeContent(form, nextAccountKey ?? nextSessionId)
+      const analysis = await analyzeContent(form, isAuthenticated ? undefined : nextSessionId)
       setResult(analysis)
-      await refreshHistory(nextAccountKey ?? nextSessionId)
-      if (isAuthenticated && nextAccountKey) {
-        await refreshAccount(nextAccountKey)
+      await refreshHistory(isAuthenticated ? undefined : nextSessionId)
+      if (isAuthenticated) {
+        await refreshAccount()
       }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to analyze draft")
@@ -242,14 +229,13 @@ export function AnalysisWorkspace() {
 
     try {
       const nextSessionId = clientId ?? getAnalysisSessionId()
-      if (!clientId) {
+      if (!clientId && !isAuthenticated) {
         setClientId(nextSessionId)
       }
-      const nextAccountKey = accountKey ?? getAccountKey(user?.id ?? null, nextSessionId)
-      const saved = await saveDraft(form, nextAccountKey ?? nextSessionId)
-      await refreshDrafts(nextAccountKey ?? nextSessionId, saved.entry.id)
-      if (isAuthenticated && nextAccountKey) {
-        await refreshAccount(nextAccountKey)
+      const saved = await saveDraft(form, isAuthenticated ? undefined : nextSessionId)
+      await refreshDrafts(isAuthenticated ? undefined : nextSessionId, saved.entry.id)
+      if (isAuthenticated) {
+        await refreshAccount()
       }
     } catch (draftSaveError) {
       setDraftsError(
@@ -272,40 +258,43 @@ export function AnalysisWorkspace() {
       />
 
       <div className="result-stack">
-      {error ? (
-        <aside className="panel error-panel" role="alert">
-          <h2>Backend error</h2>
-          <p>{error}</p>
-          <p className="muted">Start the FastAPI backend and try again.</p>
-        </aside>
-      ) : null}
+        {error ? (
+          <aside className="panel error-panel" role="alert">
+            <h2>Backend error</h2>
+            <p>{error}</p>
+            <p className="muted">Start the FastAPI backend and try again.</p>
+          </aside>
+        ) : null}
 
-      <ResultCard result={result} isSubmitting={isSubmitting} />
-      {isAuthenticated ? (
-        <CreatorAccountPanel
-          account={creatorAccount}
-          accountKey={accountKey}
-          isLoading={isAccountLoading}
-          error={accountError}
-          onUpdated={(nextAccount) => setCreatorAccount(nextAccount)}
+        <ResultCard result={result} isSubmitting={isSubmitting} />
+        {isAuthenticated ? (
+          <CreatorAccountPanel
+            account={creatorAccount}
+            isLoading={isAccountLoading}
+            error={accountError}
+            onUpdated={(nextAccount) => setCreatorAccount(nextAccount)}
+          />
+        ) : (
+          <aside className="panel account-cta">
+            <span className="panel-label">Accounts</span>
+            <h2>Sign in to sync your work</h2>
+            <p>
+              Create a creator account to keep history, saved drafts, and profile details attached
+              to your identity instead of a temporary session.
+            </p>
+            <p className="muted">
+              Sign-in buttons are available in the top bar. Anonymous analysis still works for the
+              demo flow.
+            </p>
+          </aside>
+        )}
+        <AnalysisHistory
+          entries={historyEntries}
+          isLoading={isHistoryLoading}
+          error={historyError}
         />
-      ) : (
-        <aside className="panel account-cta">
-          <span className="panel-label">Accounts</span>
-          <h2>Sign in to sync your work</h2>
-          <p>
-            Create a creator account to keep history, saved drafts, and profile details attached to
-            your identity instead of a temporary session.
-          </p>
-          <p className="muted">
-            Sign-in buttons are available in the top bar. Anonymous analysis still works for the
-            demo flow.
-          </p>
-        </aside>
-      )}
-      <AnalysisHistory entries={historyEntries} isLoading={isHistoryLoading} error={historyError} />
-      <DraftComparison
-        drafts={draftEntries}
+        <DraftComparison
+          drafts={draftEntries}
           selectedDraftId={selectedDraftId}
           currentDraft={form}
           isLoading={isDraftsLoading}

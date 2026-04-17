@@ -10,6 +10,7 @@ if str(BACKEND_ROOT) not in sys.path:
 
 from pydantic import ValidationError
 
+from app.schemas.account import CreatorAccountUpdate
 from app.schemas.input import AnalyzeRequest
 
 
@@ -39,6 +40,24 @@ class InputValidationTests(unittest.TestCase):
                 niche="creators",
                 has_cta=True,
             )
+
+    def test_analyze_request_rejects_unknown_fields(self) -> None:
+        with self.assertRaises(ValidationError):
+            AnalyzeRequest(
+                platform="TikTok",
+                content_type="Short-form video",
+                hook="A valid hook",
+                caption="Short caption",
+                transcript="Short transcript",
+                duration_seconds=30,
+                niche="creators",
+                has_cta=True,
+                unexpected="extra field",  # type: ignore[call-arg]
+            )
+
+    def test_creator_account_update_rejects_unknown_fields(self) -> None:
+        with self.assertRaises(ValidationError):
+            CreatorAccountUpdate(display_name="Creator", unexpected="extra field")  # type: ignore[call-arg]
 
 
 if __name__ == "__main__":

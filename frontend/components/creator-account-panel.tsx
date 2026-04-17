@@ -7,7 +7,6 @@ import type { CreatorAccountResponse } from "@/lib/types"
 
 type CreatorAccountPanelProps = {
   account: CreatorAccountResponse | null
-  accountKey: string | null
   isLoading: boolean
   error: string | null
   onUpdated: (account: CreatorAccountResponse) => void
@@ -31,7 +30,6 @@ const EMPTY_FORM: CreatorAccountForm = {
 
 export function CreatorAccountPanel({
   account,
-  accountKey,
   isLoading,
   error,
   onUpdated,
@@ -53,10 +51,6 @@ export function CreatorAccountPanel({
   }, [account])
 
   async function handleSave() {
-    if (!accountKey) {
-      return
-    }
-
     setIsSaving(true)
     setSaveError(null)
 
@@ -69,7 +63,6 @@ export function CreatorAccountPanel({
           preferred_platform: form.preferred_platform,
           email: form.email,
         },
-        accountKey,
       )
       onUpdated(nextAccount)
     } catch (updateError) {

@@ -8,19 +8,12 @@ import type {
   SavedDraftsResponse,
 } from "@/lib/types"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"
+const API_BASE_PATH = "/api/backend"
 
-function buildIdentityHeaders(accountKey?: string, email?: string, displayName?: string) {
+function buildClientHeaders(clientId?: string) {
   return {
-    ...(accountKey ? { "X-Account-Key": accountKey, "X-Client-Id": accountKey } : {}),
-    ...(email ? { "X-Account-Email": email } : {}),
-    ...(displayName ? { "X-Account-Name": displayName } : {}),
+    ...(clientId ? { "X-Client-Id": clientId } : {}),
   }
-}
-
-type AccountMetadata = {
-  email?: string
-  displayName?: string
 }
 
 async function readErrorMessage(response: Response): Promise<string> {
@@ -39,125 +32,114 @@ async function readErrorMessage(response: Response): Promise<string> {
   return text.trim() || "Analysis request failed"
 }
 
-export async function analyzeContent(
-  payload: AnalyzeRequest,
-  accountKey?: string,
-): Promise<AnalyzeResponse> {
-  const response = await fetch(`${API_BASE_URL}/analyze`, {
-    method: "POST",
+async function requestBackend(
+  path: string,
+  init: RequestInit,
+  clientId?: string,
+): Promise<Response> {
+  const response = await fetch(`${API_BASE_PATH}${path}`, {
+    ...init,
     headers: {
-      "Content-Type": "application/json",
-      ...buildIdentityHeaders(accountKey),
+      ...(init.headers ?? {}),
+      ...buildClientHeaders(clientId),
     },
-    body: JSON.stringify(payload),
+    cache: "no-store",
   })
 
   if (!response.ok) {
     throw new Error(await readErrorMessage(response))
   }
 
+  return response
+}
+
+export async function analyzeContent(
+  payload: AnalyzeRequest,
+  clientId?: string,
+): Promise<AnalyzeResponse> {
+  const response = await requestBackend(
+    "/analyze",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    clientId,
+  )
+
   return (await response.json()) as AnalyzeResponse
 }
 
-export async function listAnalysisHistory(accountKey: string, limit = 5): Promise<AnalysisHistoryResponse> {
-  const response = await fetch(
-    `${API_BASE_URL}/history?account_key=${encodeURIComponent(accountKey)}&limit=${limit}`,
+export async function listAnalysisHistory(
+  clientId?: string,
+  limit = 5,
+): Promise<AnalysisHistoryResponse> {
+  const query = new URLSearchParams()
+  query.set("limit", String(limit))
+
+  const response = await requestBackend(
+    `/history?${query.toString()}`,
     {
       method: "GET",
-      headers: buildIdentityHeaders(accountKey),
-      cache: "no-store",
     },
+    clientId,
   )
-
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response))
-  }
 
   return (await response.json()) as AnalysisHistoryResponse
 }
 
 export async function saveDraft(
   payload: AnalyzeRequest,
-  accountKey?: string,
+  clientId?: string,
 ): Promise<SavedDraftResponse> {
-  const response = await fetch(`${API_BASE_URL}/drafts`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...buildIdentityHeaders(accountKey),
+  const response = await requestBackend(
+    "/drafts",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
     },
-    body: JSON.stringify(payload),
-  })
-
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response))
-  }
+    clientId,
+  )
 
   return (await response.json()) as SavedDraftResponse
 }
 
-export async function listSavedDrafts(accountKey: string, limit = 10): Promise<SavedDraftsResponse> {
-  const response = await fetch(
-    `${API_BASE_URL}/drafts?account_key=${encodeURIComponent(accountKey)}&limit=${limit}`,
+export async function listSavedDrafts(clientId?: string, limit = 10): Promise<SavedDraftsResponse> {
+  const query = new URLSearchParams()
+  query.set("limit", String(limit))
+
+  const response = await requestBackend(
+    `/drafts?${query.toString()}`,
     {
       method: "GET",
-      headers: buildIdentityHeaders(accountKey),
-      cache: "no-store",
     },
+    clientId,
   )
-
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response))
-  }
 
   return (await response.json()) as SavedDraftsResponse
 }
 
-export async function getCreatorAccount(accountKey: string): Promise<CreatorAccountResponse> {
-  return getCreatorAccountWithMetadata(accountKey)
-}
-
-export async function getCreatorAccountWithMetadata(
-  accountKey: string,
-  metadata: AccountMetadata = {},
-): Promise<CreatorAccountResponse> {
-  const response = await fetch(
-    `${API_BASE_URL}/account?account_key=${encodeURIComponent(accountKey)}`,
-    {
-      method: "GET",
-      headers: buildIdentityHeaders(accountKey, metadata.email, metadata.displayName),
-      cache: "no-store",
-    },
-  )
-
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response))
-  }
+export async function getCreatorAccount(): Promise<CreatorAccountResponse> {
+  const response = await requestBackend("/account", {
+    method: "GET",
+  })
 
   return (await response.json()) as CreatorAccountResponse
 }
 
-export async function updateCreatorAccount(
-  payload: CreatorAccountUpdate,
-  accountKey: string,
-  metadata: AccountMetadata = {},
-): Promise<CreatorAccountResponse> {
-  const response = await fetch(`${API_BASE_URL}/account?account_key=${encodeURIComponent(accountKey)}`, {
+export async function updateCreatorAccount(payload: CreatorAccountUpdate): Promise<CreatorAccountResponse> {
+  const response = await requestBackend("/account", {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      ...buildIdentityHeaders(
-        accountKey,
-        metadata.email ?? payload.email ?? undefined,
-        metadata.displayName ?? payload.display_name ?? undefined,
-      ),
     },
     body: JSON.stringify(payload),
   })
-
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response))
-  }
 
   return (await response.json()) as CreatorAccountResponse
 }

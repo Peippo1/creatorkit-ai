@@ -42,6 +42,8 @@ Backend endpoints:
 - `GET /account`
 - `PATCH /account`
 
+The frontend talks to these routes through a same-origin Next.js proxy at `/api/backend/*`. Signed-in creator requests are authenticated by Clerk on the Next.js server and re-signed with an internal assertion before they reach FastAPI.
+
 ### Frontend
 
 ```bash
@@ -50,7 +52,7 @@ npm install
 npm run dev
 ```
 
-By default the frontend expects the backend at `http://localhost:8000`. You can override that with `NEXT_PUBLIC_API_BASE_URL`.
+The Next.js proxy expects the backend at `http://localhost:8000` by default. You can override that server-side with `CREATORKIT_BACKEND_URL`.
 
 For creator accounts, the Next.js app also expects Clerk environment variables:
 
@@ -58,6 +60,10 @@ For creator accounts, the Next.js app also expects Clerk environment variables:
 - `CLERK_SECRET_KEY`
 - `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`
 - `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up`
+
+For the backend proxy, set a shared server-only signing secret:
+
+- `CREATORKIT_INTERNAL_API_SECRET`
 
 ## What the First Version Does
 
