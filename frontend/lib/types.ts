@@ -56,3 +56,29 @@ export type SavedDraftResponse = {
 export type SavedDraftsResponse = {
   entries: SavedDraftEntry[]
 }
+
+export type CreatorAccountEntry = {
+  account_key: string
+  provider: string
+  email: string
+  display_name: string
+  niche: string
+  brand_name: string
+  preferred_platform: string
+  created_at: string
+  updated_at: string
+}
+
+export type CreatorAccountResponse = {
+  account: CreatorAccountEntry
+  analyses_count: number
+  drafts_count: number
+}
+
+export type CreatorAccountUpdate = {
+  email?: string | null
+  display_name?: string | null
+  niche?: string | null
+  brand_name?: string | null
+  preferred_platform?: string | null
+}

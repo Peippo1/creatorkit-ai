@@ -2,16 +2,26 @@
 
 import { useEffect, useState } from "react"
 import type { FormEvent } from "react"
+import { useUser } from "@clerk/nextjs"
 
-import { analyzeContent, listAnalysisHistory, listSavedDrafts, saveDraft } from "@/lib/api"
+import {
+  analyzeContent,
+  getCreatorAccountWithMetadata,
+  listAnalysisHistory,
+  listSavedDrafts,
+  saveDraft,
+} from "@/lib/api"
+import { getAccountKey } from "@/lib/identity"
 import { getAnalysisSessionId } from "@/lib/session"
 import type {
   AnalyzeRequest,
   AnalyzeResponse,
+  CreatorAccountResponse,
   AnalysisHistoryEntry,
   SavedDraftEntry,
 } from "@/lib/types"
 
+import { CreatorAccountPanel } from "./creator-account-panel"
 import { AnalysisForm } from "./analysis-form"
 import { AnalysisHistory } from "./analysis-history"
 import { DraftComparison } from "./draft-comparison"
@@ -41,12 +51,16 @@ function chooseSelectedDraftId(
 }
 
 export function AnalysisWorkspace() {
+  const { user, isLoaded } = useUser()
   const [form, setForm] = useState<AnalyzeRequest>(DEFAULT_FORM)
   const [result, setResult] = useState<AnalyzeResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [clientId, setClientId] = useState<string | null>(null)
+  const [creatorAccount, setCreatorAccount] = useState<CreatorAccountResponse | null>(null)
+  const [isAccountLoading, setIsAccountLoading] = useState(true)
+  const [accountError, setAccountError] = useState<string | null>(null)
   const [historyEntries, setHistoryEntries] = useState<AnalysisHistoryEntry[]>([])
   const [isHistoryLoading, setIsHistoryLoading] = useState(true)
   const [historyError, setHistoryError] = useState<string | null>(null)
@@ -59,8 +73,13 @@ export function AnalysisWorkspace() {
     setClientId(getAnalysisSessionId())
   }, [])
 
+  const accountKey = getAccountKey(user?.id ?? null, clientId)
+  const isAuthenticated = Boolean(isLoaded && user && accountKey?.startsWith("user:"))
+
   useEffect(() => {
-    if (!clientId) {
+    const workspaceKey = accountKey ?? clientId
+
+    if (!workspaceKey) {
       return
     }
 
@@ -69,13 +88,23 @@ export function AnalysisWorkspace() {
     async function loadWorkspaceData() {
       setIsHistoryLoading(true)
       setIsDraftsLoading(true)
+      setIsAccountLoading(true)
+      setAccountError(null)
       setHistoryError(null)
       setDraftsError(null)
 
-      const [historyResult, draftsResult] = await Promise.allSettled([
-        listAnalysisHistory(clientId),
-        listSavedDrafts(clientId),
-      ])
+      const historyRequest = listAnalysisHistory(workspaceKey)
+      const draftsRequest = listSavedDrafts(workspaceKey)
+      const accountRequest =
+        isAuthenticated && accountKey
+          ? getCreatorAccountWithMetadata(accountKey, {
+              email: user?.primaryEmailAddress?.emailAddress ?? undefined,
+              displayName: user?.fullName ?? user?.username ?? undefined,
+            })
+          : null
+
+      const [historyResult, draftsResult] = await Promise.allSettled([historyRequest, draftsRequest])
+      const accountResult = accountRequest ? await Promise.allSettled([accountRequest]) : null
 
       if (cancelled) {
         return
@@ -104,8 +133,24 @@ export function AnalysisWorkspace() {
         )
       }
 
+      if (accountResult) {
+        const [creatorResult] = accountResult
+        if (creatorResult.status === "fulfilled") {
+          setCreatorAccount(creatorResult.value)
+        } else {
+          setAccountError(
+            creatorResult.reason instanceof Error
+              ? creatorResult.reason.message
+              : "Unable to load creator account",
+          )
+        }
+      } else if (!accountRequest) {
+        setCreatorAccount(null)
+      }
+
       setIsHistoryLoading(false)
       setIsDraftsLoading(false)
+      setIsAccountLoading(false)
     }
 
     void loadWorkspaceData()
@@ -113,7 +158,7 @@ export function AnalysisWorkspace() {
     return () => {
       cancelled = true
     }
-  }, [clientId])
+  }, [accountKey, clientId, isAuthenticated, user])
 
   async function refreshHistory(nextClientId: string) {
     try {
@@ -142,6 +187,23 @@ export function AnalysisWorkspace() {
     }
   }
 
+  async function refreshAccount(nextAccountKey: string) {
+    try {
+      const response = await getCreatorAccountWithMetadata(nextAccountKey, {
+        email: user?.primaryEmailAddress?.emailAddress ?? undefined,
+        displayName: user?.fullName ?? user?.username ?? undefined,
+      })
+      setCreatorAccount(response)
+      setAccountError(null)
+    } catch (accountLoadError) {
+      setAccountError(
+        accountLoadError instanceof Error
+          ? accountLoadError.message
+          : "Unable to load creator account",
+      )
+    }
+  }
+
   function updateField<K extends keyof AnalyzeRequest>(field: K, nextValue: AnalyzeRequest[K]) {
     setForm((current) => ({
       ...current,
@@ -156,13 +218,17 @@ export function AnalysisWorkspace() {
     setResult(null)
 
     try {
-      const nextClientId = clientId ?? getAnalysisSessionId()
+      const nextSessionId = clientId ?? getAnalysisSessionId()
       if (!clientId) {
-        setClientId(nextClientId)
+        setClientId(nextSessionId)
       }
-      const analysis = await analyzeContent(form, nextClientId)
+      const nextAccountKey = accountKey ?? getAccountKey(user?.id ?? null, nextSessionId)
+      const analysis = await analyzeContent(form, nextAccountKey ?? nextSessionId)
       setResult(analysis)
-      await refreshHistory(nextClientId)
+      await refreshHistory(nextAccountKey ?? nextSessionId)
+      if (isAuthenticated && nextAccountKey) {
+        await refreshAccount(nextAccountKey)
+      }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to analyze draft")
     } finally {
@@ -175,12 +241,16 @@ export function AnalysisWorkspace() {
     setDraftsError(null)
 
     try {
-      const nextClientId = clientId ?? getAnalysisSessionId()
+      const nextSessionId = clientId ?? getAnalysisSessionId()
       if (!clientId) {
-        setClientId(nextClientId)
+        setClientId(nextSessionId)
       }
-      const saved = await saveDraft(form, nextClientId)
-      await refreshDrafts(nextClientId, saved.entry.id)
+      const nextAccountKey = accountKey ?? getAccountKey(user?.id ?? null, nextSessionId)
+      const saved = await saveDraft(form, nextAccountKey ?? nextSessionId)
+      await refreshDrafts(nextAccountKey ?? nextSessionId, saved.entry.id)
+      if (isAuthenticated && nextAccountKey) {
+        await refreshAccount(nextAccountKey)
+      }
     } catch (draftSaveError) {
       setDraftsError(
         draftSaveError instanceof Error ? draftSaveError.message : "Unable to save draft",
@@ -202,18 +272,40 @@ export function AnalysisWorkspace() {
       />
 
       <div className="result-stack">
-        {error ? (
-          <aside className="panel error-panel" role="alert">
-            <h2>Backend error</h2>
-            <p>{error}</p>
-            <p className="muted">Start the FastAPI backend and try again.</p>
-          </aside>
-        ) : null}
+      {error ? (
+        <aside className="panel error-panel" role="alert">
+          <h2>Backend error</h2>
+          <p>{error}</p>
+          <p className="muted">Start the FastAPI backend and try again.</p>
+        </aside>
+      ) : null}
 
-        <ResultCard result={result} isSubmitting={isSubmitting} />
-        <AnalysisHistory entries={historyEntries} isLoading={isHistoryLoading} error={historyError} />
-        <DraftComparison
-          drafts={draftEntries}
+      <ResultCard result={result} isSubmitting={isSubmitting} />
+      {isAuthenticated ? (
+        <CreatorAccountPanel
+          account={creatorAccount}
+          accountKey={accountKey}
+          isLoading={isAccountLoading}
+          error={accountError}
+          onUpdated={(nextAccount) => setCreatorAccount(nextAccount)}
+        />
+      ) : (
+        <aside className="panel account-cta">
+          <span className="panel-label">Accounts</span>
+          <h2>Sign in to sync your work</h2>
+          <p>
+            Create a creator account to keep history, saved drafts, and profile details attached to
+            your identity instead of a temporary session.
+          </p>
+          <p className="muted">
+            Sign-in buttons are available in the top bar. Anonymous analysis still works for the
+            demo flow.
+          </p>
+        </aside>
+      )}
+      <AnalysisHistory entries={historyEntries} isLoading={isHistoryLoading} error={historyError} />
+      <DraftComparison
+        drafts={draftEntries}
           selectedDraftId={selectedDraftId}
           currentDraft={form}
           isLoading={isDraftsLoading}

@@ -491,7 +491,9 @@ a {
 .topnav {
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .topnav a {
@@ -500,6 +502,25 @@ a {
   background: rgba(255, 255, 255, 0.7);
   padding: 10px 14px;
   font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.auth-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.auth-actions__signed-in {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-actions__label {
+  color: var(--muted);
+  font-size: 0.84rem;
   font-weight: 700;
 }
 
@@ -1357,6 +1378,56 @@ a.button {
 
 .muted {
   color: var(--muted);
+}
+
+.panel-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.account-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.account-panel__stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  align-items: baseline;
+  text-align: right;
+}
+
+.account-panel__stats strong {
+  font-size: 1.1rem;
+}
+
+.account-panel__body {
+  display: grid;
+  gap: 12px;
+}
+
+.account-cta {
+  display: grid;
+  gap: 12px;
+}
+
+.error-text {
+  margin: 0;
+  color: #9a3412;
+}
+
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background:
+    radial-gradient(circle at top left, rgba(31, 94, 255, 0.16), transparent 32%),
+    radial-gradient(circle at top right, rgba(138, 92, 246, 0.14), transparent 28%),
+    linear-gradient(180deg, var(--bg), var(--bg-2));
 }
 
 .stack {

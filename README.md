@@ -39,6 +39,8 @@ Backend endpoints:
 - `GET /history`
 - `GET /drafts`
 - `POST /drafts`
+- `GET /account`
+- `PATCH /account`
 
 ### Frontend
 
@@ -50,14 +52,22 @@ npm run dev
 
 By default the frontend expects the backend at `http://localhost:8000`. You can override that with `NEXT_PUBLIC_API_BASE_URL`.
 
+For creator accounts, the Next.js app also expects Clerk environment variables:
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`
+- `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up`
+
 ## What the First Version Does
 
 - accepts platform, content type, hook, caption, transcript, duration, niche, and CTA intent
 - returns an overall score and sub-scores for hook, clarity, and platform fit
 - uses profile-aware scoring so short-form, long-form, and text-first drafts are weighted differently
 - returns strengths, risks, critique, and suggestions
-- persists recent analyses for the current browser session and shows history
+- persists recent analyses for the current browser session or signed-in creator account and shows history
 - saves draft snapshots for later comparison
+- lets signed-in creators edit a profile backed by a creator account record
 - compares the selected saved draft against the current form
 - provides a clean landing page and analysis form
 

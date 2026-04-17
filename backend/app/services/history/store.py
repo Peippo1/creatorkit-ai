@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from ...schemas.drafts import SavedDraftEntry
+from ...schemas.account import CreatorAccountEntry, CreatorAccountResponse
 from ...schemas.history import AnalysisHistoryEntry
 from ...schemas.input import AnalyzeRequest
 from ...schemas.output import AnalyzeResponse
@@ -95,6 +96,21 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         ON drafts(client_id, created_at DESC, id DESC)
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS creator_accounts (
+            account_key TEXT PRIMARY KEY,
+            provider TEXT NOT NULL,
+            email TEXT NOT NULL,
+            display_name TEXT NOT NULL,
+            niche TEXT NOT NULL,
+            brand_name TEXT NOT NULL,
+            preferred_platform TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
     conn.commit()
 
 
@@ -116,6 +132,34 @@ def save_analysis(
     response_json = json.dumps(result.model_dump(), ensure_ascii=False)
 
     with _connect() as conn:
+        if client_id.startswith("user:"):
+            conn.execute(
+                """
+                INSERT INTO creator_accounts (
+                    account_key,
+                    provider,
+                    email,
+                    display_name,
+                    niche,
+                    brand_name,
+                    preferred_platform,
+                    created_at,
+                    updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(account_key) DO NOTHING
+                """,
+                (
+                    client_id,
+                    "clerk",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    timestamp,
+                    timestamp,
+                ),
+            )
         cursor = conn.execute(
             """
             INSERT INTO analyses (
@@ -219,6 +263,34 @@ def save_draft(
     request_json = json.dumps(payload.model_dump(), ensure_ascii=False)
 
     with _connect() as conn:
+        if client_id.startswith("user:"):
+            conn.execute(
+                """
+                INSERT INTO creator_accounts (
+                    account_key,
+                    provider,
+                    email,
+                    display_name,
+                    niche,
+                    brand_name,
+                    preferred_platform,
+                    created_at,
+                    updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(account_key) DO NOTHING
+                """,
+                (
+                    client_id,
+                    "clerk",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    timestamp,
+                    timestamp,
+                ),
+            )
         cursor = conn.execute(
             """
             INSERT INTO drafts (
@@ -268,3 +340,174 @@ def list_saved_drafts(client_id: str, limit: int = 10) -> list[SavedDraftEntry]:
         )
         for row in rows
     ]
+
+
+def _creator_provider(account_key: str, provider: str | None = None) -> str:
+    if provider:
+        return provider
+    if account_key.startswith("user:"):
+        return "clerk"
+    return "session"
+
+
+def _creator_defaults(account_key: str) -> dict[str, str]:
+    return {
+        "account_key": account_key,
+        "provider": _creator_provider(account_key),
+        "email": "",
+        "display_name": "",
+        "niche": "",
+        "brand_name": "",
+        "preferred_platform": "",
+    }
+
+
+def _creator_count(conn: sqlite3.Connection, table: str, account_key: str) -> int:
+    row = conn.execute(
+        f"SELECT COUNT(*) AS total FROM {table} WHERE client_id = ?",
+        (account_key,),
+    ).fetchone()
+    return int(row["total"] if row is not None else 0)
+
+
+def _creator_row_to_entry(row: sqlite3.Row) -> CreatorAccountEntry:
+    return CreatorAccountEntry(
+        account_key=str(row["account_key"]),
+        provider=str(row["provider"]),
+        email=str(row["email"]),
+        display_name=str(row["display_name"]),
+        niche=str(row["niche"]),
+        brand_name=str(row["brand_name"]),
+        preferred_platform=str(row["preferred_platform"]),
+        created_at=str(row["created_at"]),
+        updated_at=str(row["updated_at"]),
+    )
+
+
+def ensure_creator_account(
+    account_key: str,
+    *,
+    provider: str | None = None,
+    email: str | None = None,
+    display_name: str | None = None,
+    niche: str | None = None,
+    brand_name: str | None = None,
+    preferred_platform: str | None = None,
+    created_at: datetime | None = None,
+) -> CreatorAccountEntry:
+    timestamp = _timestamp(created_at)
+    defaults = _creator_defaults(account_key)
+
+    with _connect() as conn:
+        row = conn.execute(
+            """
+            SELECT account_key, provider, email, display_name, niche, brand_name, preferred_platform,
+                   created_at, updated_at
+            FROM creator_accounts
+            WHERE account_key = ?
+            """,
+            (account_key,),
+        ).fetchone()
+
+        if row is None:
+            conn.execute(
+                """
+                INSERT INTO creator_accounts (
+                    account_key,
+                    provider,
+                    email,
+                    display_name,
+                    niche,
+                    brand_name,
+                    preferred_platform,
+                    created_at,
+                    updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    defaults["account_key"],
+                    _creator_provider(account_key, provider),
+                    email or "",
+                    display_name or "",
+                    niche or "",
+                    brand_name or "",
+                    preferred_platform or "",
+                    timestamp,
+                    timestamp,
+                ),
+            )
+            conn.commit()
+            return CreatorAccountEntry(
+                account_key=defaults["account_key"],
+                provider=_creator_provider(account_key, provider),
+                email=email or "",
+                display_name=display_name or "",
+                niche=niche or "",
+                brand_name=brand_name or "",
+                preferred_platform=preferred_platform or "",
+                created_at=timestamp,
+                updated_at=timestamp,
+            )
+
+        current = _creator_row_to_entry(row)
+        next_entry = CreatorAccountEntry(
+            account_key=current.account_key,
+            provider=_creator_provider(account_key, provider) if provider is not None else current.provider,
+            email=email if email is not None else current.email,
+            display_name=display_name if display_name is not None else current.display_name,
+            niche=niche if niche is not None else current.niche,
+            brand_name=brand_name if brand_name is not None else current.brand_name,
+            preferred_platform=preferred_platform if preferred_platform is not None else current.preferred_platform,
+            created_at=current.created_at,
+            updated_at=timestamp,
+        )
+        conn.execute(
+            """
+            UPDATE creator_accounts
+            SET provider = ?, email = ?, display_name = ?, niche = ?, brand_name = ?, preferred_platform = ?, updated_at = ?
+            WHERE account_key = ?
+            """,
+            (
+                next_entry.provider,
+                next_entry.email,
+                next_entry.display_name,
+                next_entry.niche,
+                next_entry.brand_name,
+                next_entry.preferred_platform,
+                timestamp,
+                account_key,
+            ),
+        )
+        conn.commit()
+        return next_entry
+
+
+def get_creator_account(account_key: str) -> CreatorAccountEntry:
+    with _connect() as conn:
+        row = conn.execute(
+            """
+            SELECT account_key, provider, email, display_name, niche, brand_name, preferred_platform,
+                   created_at, updated_at
+            FROM creator_accounts
+            WHERE account_key = ?
+            """,
+            (account_key,),
+        ).fetchone()
+
+    if row is None:
+        return ensure_creator_account(account_key)
+    return _creator_row_to_entry(row)
+
+
+def get_creator_account_summary(account_key: str) -> CreatorAccountResponse:
+    account = get_creator_account(account_key)
+
+    with _connect() as conn:
+        analyses_count = _creator_count(conn, "analyses", account_key)
+        drafts_count = _creator_count(conn, "drafts", account_key)
+
+    return CreatorAccountResponse(
+        account=account,
+        analyses_count=analyses_count,
+        drafts_count=drafts_count,
+    )
