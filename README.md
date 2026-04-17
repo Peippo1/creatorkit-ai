@@ -36,6 +36,7 @@ Backend endpoints:
 
 - `GET /health`
 - `POST /analyze`
+- `GET /history`
 
 ### Frontend
 
@@ -52,6 +53,7 @@ By default the frontend expects the backend at `http://localhost:8000`. You can 
 - accepts platform, content type, hook, caption, transcript, duration, niche, and CTA intent
 - returns an overall score and sub-scores for hook, clarity, and platform fit
 - returns strengths, risks, critique, and suggestions
+- persists recent analyses for the current browser session and shows history
 - provides a clean landing page and analysis form
 
 ## Legacy Research

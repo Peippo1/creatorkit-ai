@@ -12,4 +12,5 @@ node_modules/
 **/.turbo/
 dist/
 **/dist/
+backend/data/
 .DS_Store

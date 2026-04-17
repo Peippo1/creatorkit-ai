@@ -1,4 +1,8 @@
-import type { AnalyzeRequest, AnalyzeResponse } from "@/lib/types"
+import type {
+  AnalyzeRequest,
+  AnalyzeResponse,
+  AnalysisHistoryResponse,
+} from "@/lib/types"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"
 
@@ -18,11 +22,15 @@ async function readErrorMessage(response: Response): Promise<string> {
   return text.trim() || "Analysis request failed"
 }
 
-export async function analyzeContent(payload: AnalyzeRequest): Promise<AnalyzeResponse> {
+export async function analyzeContent(
+  payload: AnalyzeRequest,
+  clientId?: string,
+): Promise<AnalyzeResponse> {
   const response = await fetch(`${API_BASE_URL}/analyze`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(clientId ? { "X-Client-Id": clientId } : {}),
     },
     body: JSON.stringify(payload),
   })
@@ -32,4 +40,20 @@ export async function analyzeContent(payload: AnalyzeRequest): Promise<AnalyzeRe
   }
 
   return (await response.json()) as AnalyzeResponse
+}
+
+export async function listAnalysisHistory(clientId: string, limit = 5): Promise<AnalysisHistoryResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/history?client_id=${encodeURIComponent(clientId)}&limit=${limit}`,
+    {
+      method: "GET",
+      cache: "no-store",
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response))
+  }
+
+  return (await response.json()) as AnalysisHistoryResponse
 }

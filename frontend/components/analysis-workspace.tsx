@@ -1,12 +1,14 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import type { FormEvent } from "react"
-import { useState } from "react"
 
-import { analyzeContent } from "@/lib/api"
-import type { AnalyzeRequest, AnalyzeResponse } from "@/lib/types"
+import { analyzeContent, listAnalysisHistory } from "@/lib/api"
+import { getAnalysisSessionId } from "@/lib/session"
+import type { AnalyzeRequest, AnalyzeResponse, AnalysisHistoryEntry } from "@/lib/types"
 
 import { AnalysisForm } from "./analysis-form"
+import { AnalysisHistory } from "./analysis-history"
 import { ResultCard } from "./result-card"
 
 const DEFAULT_FORM: AnalyzeRequest = {
@@ -25,6 +27,62 @@ export function AnalysisWorkspace() {
   const [result, setResult] = useState<AnalyzeResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [clientId, setClientId] = useState<string | null>(null)
+  const [historyEntries, setHistoryEntries] = useState<AnalysisHistoryEntry[]>([])
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true)
+  const [historyError, setHistoryError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setClientId(getAnalysisSessionId())
+  }, [])
+
+  useEffect(() => {
+    if (!clientId) {
+      return
+    }
+
+    let cancelled = false
+
+    async function loadHistory() {
+      setIsHistoryLoading(true)
+      setHistoryError(null)
+
+      try {
+        const response = await listAnalysisHistory(clientId)
+        if (!cancelled) {
+          setHistoryEntries(response.entries)
+        }
+      } catch (historyLoadError) {
+        if (!cancelled) {
+          setHistoryError(
+            historyLoadError instanceof Error ? historyLoadError.message : "Unable to load history",
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setIsHistoryLoading(false)
+        }
+      }
+    }
+
+    void loadHistory()
+
+    return () => {
+      cancelled = true
+    }
+  }, [clientId])
+
+  async function refreshHistory(nextClientId: string) {
+    try {
+      const response = await listAnalysisHistory(nextClientId)
+      setHistoryEntries(response.entries)
+      setHistoryError(null)
+    } catch (historyLoadError) {
+      setHistoryError(
+        historyLoadError instanceof Error ? historyLoadError.message : "Unable to load history",
+      )
+    }
+  }
 
   function updateField<K extends keyof AnalyzeRequest>(field: K, nextValue: AnalyzeRequest[K]) {
     setForm((current) => ({
@@ -40,8 +98,13 @@ export function AnalysisWorkspace() {
     setResult(null)
 
     try {
-      const analysis = await analyzeContent(form)
+      const nextClientId = clientId ?? getAnalysisSessionId()
+      if (!clientId) {
+        setClientId(nextClientId)
+      }
+      const analysis = await analyzeContent(form, nextClientId)
       setResult(analysis)
+      await refreshHistory(nextClientId)
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to analyze draft")
     } finally {
@@ -68,6 +131,7 @@ export function AnalysisWorkspace() {
         ) : null}
 
         <ResultCard result={result} isSubmitting={isSubmitting} />
+        <AnalysisHistory entries={historyEntries} isLoading={isHistoryLoading} error={historyError} />
       </div>
     </div>
   )

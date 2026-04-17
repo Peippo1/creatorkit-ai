@@ -1151,6 +1151,79 @@ a.button {
   color: var(--text);
 }
 
+.history-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.history-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.history-empty {
+  margin: 0;
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.history-item {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(23, 19, 18, 0.08);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.history-item-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.history-item-top strong {
+  display: block;
+  font-size: 0.96rem;
+  letter-spacing: -0.03em;
+}
+
+.history-item-top span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.history-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.history-meta span {
+  border: 1px solid rgba(23, 19, 18, 0.08);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.history-suggestion {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.55;
+}
+
 .empty-state {
   padding: 28px 18px;
   border-radius: 18px;
@@ -1209,6 +1282,10 @@ a.button {
 
   .result-focus {
     grid-template-columns: 1fr;
+  }
+
+  .history-item-top {
+    flex-direction: column;
   }
 
   .score-badge {

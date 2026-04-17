@@ -14,15 +14,17 @@
 2. User fills out the analysis form.
 3. The frontend sends the payload to `POST /analyze`.
 4. The backend scores the draft with a lightweight heuristic predictor.
-5. The backend returns scores plus critique and suggestions.
-6. The frontend renders the result card.
+5. The backend stores the analysis in a local SQLite history table and returns scores plus critique and suggestions.
+6. The frontend renders the result card and refreshes the session history list.
 
 ## Backend
 
 - FastAPI application entry point at `backend/app/main.py`
 - `/health` endpoint for simple uptime checks
 - `/analyze` endpoint for content scoring and feedback
+- `/history` endpoint for the current browser session's recent analyses
 - service layer split into scoring and critique helpers
+- SQLite-backed persistence for analysis history
 
 ## Frontend
 
@@ -30,6 +32,7 @@
 - single page landing experience
 - client-side form submission with local API wiring
 - result panel for score and feedback display
+- session-scoped history panel for recent analyses
 
 ## Next Step
 
