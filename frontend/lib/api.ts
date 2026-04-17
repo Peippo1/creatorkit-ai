@@ -2,6 +2,8 @@ import type {
   AnalyzeRequest,
   AnalyzeResponse,
   AnalysisHistoryResponse,
+  SavedDraftResponse,
+  SavedDraftsResponse,
 } from "@/lib/types"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"
@@ -56,4 +58,40 @@ export async function listAnalysisHistory(clientId: string, limit = 5): Promise<
   }
 
   return (await response.json()) as AnalysisHistoryResponse
+}
+
+export async function saveDraft(
+  payload: AnalyzeRequest,
+  clientId?: string,
+): Promise<SavedDraftResponse> {
+  const response = await fetch(`${API_BASE_URL}/drafts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(clientId ? { "X-Client-Id": clientId } : {}),
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response))
+  }
+
+  return (await response.json()) as SavedDraftResponse
+}
+
+export async function listSavedDrafts(clientId: string, limit = 10): Promise<SavedDraftsResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/drafts?client_id=${encodeURIComponent(clientId)}&limit=${limit}`,
+    {
+      method: "GET",
+      cache: "no-store",
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response))
+  }
+
+  return (await response.json()) as SavedDraftsResponse
 }

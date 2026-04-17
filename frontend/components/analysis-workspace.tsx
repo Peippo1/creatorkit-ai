@@ -3,12 +3,18 @@
 import { useEffect, useState } from "react"
 import type { FormEvent } from "react"
 
-import { analyzeContent, listAnalysisHistory } from "@/lib/api"
+import { analyzeContent, listAnalysisHistory, listSavedDrafts, saveDraft } from "@/lib/api"
 import { getAnalysisSessionId } from "@/lib/session"
-import type { AnalyzeRequest, AnalyzeResponse, AnalysisHistoryEntry } from "@/lib/types"
+import type {
+  AnalyzeRequest,
+  AnalyzeResponse,
+  AnalysisHistoryEntry,
+  SavedDraftEntry,
+} from "@/lib/types"
 
 import { AnalysisForm } from "./analysis-form"
 import { AnalysisHistory } from "./analysis-history"
+import { DraftComparison } from "./draft-comparison"
 import { ResultCard } from "./result-card"
 
 const DEFAULT_FORM: AnalyzeRequest = {
@@ -16,10 +22,22 @@ const DEFAULT_FORM: AnalyzeRequest = {
   content_type: "Short-form video",
   hook: "Most creators miss this one edit before publishing.",
   caption: "A creator-focused draft that needs a fast pre-publish review.",
-  transcript: "In this draft, we show how to tighten the opening, clarify the value, and end with a stronger call to action.",
+  transcript:
+    "In this draft, we show how to tighten the opening, clarify the value, and end with a stronger call to action.",
   duration_seconds: 35,
   niche: "creator education",
   has_cta: true,
+}
+
+function chooseSelectedDraftId(
+  currentId: number | null,
+  drafts: SavedDraftEntry[],
+): number | null {
+  if (currentId !== null && drafts.some((draft) => draft.id === currentId)) {
+    return currentId
+  }
+
+  return drafts[0]?.id ?? null
 }
 
 export function AnalysisWorkspace() {
@@ -27,10 +45,15 @@ export function AnalysisWorkspace() {
   const [result, setResult] = useState<AnalyzeResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [clientId, setClientId] = useState<string | null>(null)
   const [historyEntries, setHistoryEntries] = useState<AnalysisHistoryEntry[]>([])
   const [isHistoryLoading, setIsHistoryLoading] = useState(true)
   const [historyError, setHistoryError] = useState<string | null>(null)
+  const [draftEntries, setDraftEntries] = useState<SavedDraftEntry[]>([])
+  const [isDraftsLoading, setIsDraftsLoading] = useState(true)
+  const [draftsError, setDraftsError] = useState<string | null>(null)
+  const [selectedDraftId, setSelectedDraftId] = useState<number | null>(null)
 
   useEffect(() => {
     setClientId(getAnalysisSessionId())
@@ -43,29 +66,49 @@ export function AnalysisWorkspace() {
 
     let cancelled = false
 
-    async function loadHistory() {
+    async function loadWorkspaceData() {
       setIsHistoryLoading(true)
+      setIsDraftsLoading(true)
       setHistoryError(null)
+      setDraftsError(null)
 
-      try {
-        const response = await listAnalysisHistory(clientId)
-        if (!cancelled) {
-          setHistoryEntries(response.entries)
-        }
-      } catch (historyLoadError) {
-        if (!cancelled) {
-          setHistoryError(
-            historyLoadError instanceof Error ? historyLoadError.message : "Unable to load history",
-          )
-        }
-      } finally {
-        if (!cancelled) {
-          setIsHistoryLoading(false)
-        }
+      const [historyResult, draftsResult] = await Promise.allSettled([
+        listAnalysisHistory(clientId),
+        listSavedDrafts(clientId),
+      ])
+
+      if (cancelled) {
+        return
       }
+
+      if (historyResult.status === "fulfilled") {
+        setHistoryEntries(historyResult.value.entries)
+      } else {
+        setHistoryError(
+          historyResult.reason instanceof Error
+            ? historyResult.reason.message
+            : "Unable to load history",
+        )
+      }
+
+      if (draftsResult.status === "fulfilled") {
+        setDraftEntries(draftsResult.value.entries)
+        setSelectedDraftId((current) =>
+          chooseSelectedDraftId(current, draftsResult.value.entries),
+        )
+      } else {
+        setDraftsError(
+          draftsResult.reason instanceof Error
+            ? draftsResult.reason.message
+            : "Unable to load saved drafts",
+        )
+      }
+
+      setIsHistoryLoading(false)
+      setIsDraftsLoading(false)
     }
 
-    void loadHistory()
+    void loadWorkspaceData()
 
     return () => {
       cancelled = true
@@ -80,6 +123,21 @@ export function AnalysisWorkspace() {
     } catch (historyLoadError) {
       setHistoryError(
         historyLoadError instanceof Error ? historyLoadError.message : "Unable to load history",
+      )
+    }
+  }
+
+  async function refreshDrafts(nextClientId: string, preferredDraftId: number | null = null) {
+    try {
+      const response = await listSavedDrafts(nextClientId)
+      setDraftEntries(response.entries)
+      setSelectedDraftId((current) =>
+        preferredDraftId ?? chooseSelectedDraftId(current, response.entries),
+      )
+      setDraftsError(null)
+    } catch (draftLoadError) {
+      setDraftsError(
+        draftLoadError instanceof Error ? draftLoadError.message : "Unable to load saved drafts",
       )
     }
   }
@@ -112,12 +170,34 @@ export function AnalysisWorkspace() {
     }
   }
 
+  async function handleSaveDraft() {
+    setIsSavingDraft(true)
+    setDraftsError(null)
+
+    try {
+      const nextClientId = clientId ?? getAnalysisSessionId()
+      if (!clientId) {
+        setClientId(nextClientId)
+      }
+      const saved = await saveDraft(form, nextClientId)
+      await refreshDrafts(nextClientId, saved.entry.id)
+    } catch (draftSaveError) {
+      setDraftsError(
+        draftSaveError instanceof Error ? draftSaveError.message : "Unable to save draft",
+      )
+    } finally {
+      setIsSavingDraft(false)
+    }
+  }
+
   return (
     <div className="workspace-grid">
       <AnalysisForm
         value={form}
         isSubmitting={isSubmitting}
+        isSavingDraft={isSavingDraft}
         onSubmit={handleSubmit}
+        onSaveDraft={handleSaveDraft}
         onFieldChange={updateField}
       />
 
@@ -132,6 +212,14 @@ export function AnalysisWorkspace() {
 
         <ResultCard result={result} isSubmitting={isSubmitting} />
         <AnalysisHistory entries={historyEntries} isLoading={isHistoryLoading} error={historyError} />
+        <DraftComparison
+          drafts={draftEntries}
+          selectedDraftId={selectedDraftId}
+          currentDraft={form}
+          isLoading={isDraftsLoading}
+          error={draftsError}
+          onSelectDraft={(draftId) => setSelectedDraftId(draftId)}
+        />
       </div>
     </div>
   )

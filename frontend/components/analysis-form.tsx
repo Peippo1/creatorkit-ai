@@ -5,7 +5,9 @@ import type { AnalyzeRequest } from "@/lib/types"
 type AnalysisFormProps = {
   value: AnalyzeRequest
   isSubmitting: boolean
+  isSavingDraft: boolean
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  onSaveDraft: () => void
   onFieldChange: <K extends keyof AnalyzeRequest>(field: K, nextValue: AnalyzeRequest[K]) => void
 }
 
@@ -32,7 +34,9 @@ const CONTENT_TYPE_OPTIONS = [
 export function AnalysisForm({
   value,
   isSubmitting,
+  isSavingDraft,
   onSubmit,
+  onSaveDraft,
   onFieldChange,
 }: AnalysisFormProps) {
   return (
@@ -150,6 +154,14 @@ export function AnalysisForm({
       <div className="actions">
         <button className="button" type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Analyzing..." : "Analyze draft"}
+        </button>
+        <button
+          className="button button--ghost"
+          type="button"
+          onClick={onSaveDraft}
+          disabled={isSavingDraft || isSubmitting}
+        >
+          {isSavingDraft ? "Saving..." : "Save draft"}
         </button>
         <span className="helper">This connects to the local FastAPI backend.</span>
       </div>

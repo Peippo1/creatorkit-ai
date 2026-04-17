@@ -41,3 +41,18 @@ export type AnalysisHistoryEntry = {
 export type AnalysisHistoryResponse = {
   entries: AnalysisHistoryEntry[]
 }
+
+export type SavedDraftEntry = {
+  id: number
+  created_at: string
+  title: string
+  request: AnalyzeRequest
+}
+
+export type SavedDraftResponse = {
+  entry: SavedDraftEntry
+}
+
+export type SavedDraftsResponse = {
+  entries: SavedDraftEntry[]
+}

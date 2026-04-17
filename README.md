@@ -37,6 +37,8 @@ Backend endpoints:
 - `GET /health`
 - `POST /analyze`
 - `GET /history`
+- `GET /drafts`
+- `POST /drafts`
 
 ### Frontend
 
@@ -54,6 +56,8 @@ By default the frontend expects the backend at `http://localhost:8000`. You can 
 - returns an overall score and sub-scores for hook, clarity, and platform fit
 - returns strengths, risks, critique, and suggestions
 - persists recent analyses for the current browser session and shows history
+- saves draft snapshots for later comparison
+- compares the selected saved draft against the current form
 - provides a clean landing page and analysis form
 
 ## Legacy Research

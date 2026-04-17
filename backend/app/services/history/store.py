@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
+from ...schemas.drafts import SavedDraftEntry
 from ...schemas.history import AnalysisHistoryEntry
 from ...schemas.input import AnalyzeRequest
 from ...schemas.output import AnalyzeResponse
@@ -75,6 +76,23 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         """
         CREATE INDEX IF NOT EXISTS idx_analyses_client_created
         ON analyses(client_id, created_at DESC, id DESC)
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS drafts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            title TEXT NOT NULL,
+            request_json TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_drafts_client_created
+        ON drafts(client_id, created_at DESC, id DESC)
         """
     )
     conn.commit()
@@ -182,6 +200,71 @@ def list_recent_analyses(client_id: str, limit: int = 5) -> list[AnalysisHistory
             platform_fit_score=int(row["platform_fit_score"]),
             critique=str(row["critique"]),
             top_suggestion=str(row["top_suggestion"]),
+        )
+        for row in rows
+    ]
+
+
+def _draft_title(payload: AnalyzeRequest) -> str:
+    return f"{payload.platform} · {payload.content_type}"
+
+
+def save_draft(
+    client_id: str,
+    payload: AnalyzeRequest,
+    *,
+    created_at: datetime | None = None,
+) -> SavedDraftEntry:
+    timestamp = _timestamp(created_at)
+    request_json = json.dumps(payload.model_dump(), ensure_ascii=False)
+
+    with _connect() as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO drafts (
+                client_id,
+                created_at,
+                title,
+                request_json
+            ) VALUES (?, ?, ?, ?)
+            """,
+            (
+                client_id,
+                timestamp,
+                _draft_title(payload),
+                request_json,
+            ),
+        )
+        conn.commit()
+        record_id = int(cursor.lastrowid)
+
+    return SavedDraftEntry(
+        id=record_id,
+        created_at=timestamp,
+        title=_draft_title(payload),
+        request=payload,
+    )
+
+
+def list_saved_drafts(client_id: str, limit: int = 10) -> list[SavedDraftEntry]:
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, created_at, title, request_json
+            FROM drafts
+            WHERE client_id = ?
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
+            """,
+            (client_id, limit),
+        ).fetchall()
+
+    return [
+        SavedDraftEntry(
+            id=int(row["id"]),
+            created_at=str(row["created_at"]),
+            title=str(row["title"]),
+            request=AnalyzeRequest.model_validate_json(str(row["request_json"])),
         )
         for row in rows
     ]
