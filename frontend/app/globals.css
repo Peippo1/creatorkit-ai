@@ -959,6 +959,52 @@ a.button {
   gap: 10px;
 }
 
+.result-focus {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(31, 94, 255, 0.16);
+  background:
+    linear-gradient(135deg, rgba(31, 94, 255, 0.08), rgba(138, 92, 246, 0.08)),
+    rgba(255, 255, 255, 0.88);
+}
+
+.result-focus-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.result-focus-copy h4 {
+  margin: 0;
+  font-size: 1.06rem;
+  letter-spacing: -0.04em;
+}
+
+.result-focus-copy p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.button--ghost {
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--accent);
+  border: 1px solid rgba(31, 94, 255, 0.16);
+  box-shadow: none;
+}
+
+.button--ghost:hover {
+  background: rgba(31, 94, 255, 0.06);
+}
+
+.button--ghost:focus-visible {
+  outline: 2px solid rgba(31, 94, 255, 0.3);
+  outline-offset: 2px;
+}
+
 .result-callout p {
   margin: 0;
   color: var(--text);
@@ -1158,6 +1204,10 @@ a.button {
   }
 
   .score-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .result-focus {
     grid-template-columns: 1fr;
   }
 

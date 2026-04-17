@@ -130,7 +130,21 @@ export function ResultCard({ result, isSubmitting }: ResultCardProps) {
         </div>
       </div>
 
-      <article className="result-callout">
+      <section className="result-focus" aria-label="Primary edit">
+        <div className="result-focus-copy">
+          <span className="panel-label">Priority fix</span>
+          <h4>{suggestions.lead}</h4>
+          <p>
+            This is the first change to make before publishing. It gives the draft the most
+            immediate lift based on the current backend readout.
+          </p>
+        </div>
+        <a className="button button--ghost" href="#analysis-suggestions">
+          Review all suggestions
+        </a>
+      </section>
+
+      <article className="result-callout" id="analysis-critique">
         <div className="card-heading">
           <span className="panel-label">Backend readout</span>
           <h4>What the model is telling you</h4>
@@ -199,7 +213,7 @@ export function ResultCard({ result, isSubmitting }: ResultCardProps) {
         <p>{result.critique}</p>
       </article>
 
-      <article className="suggestions-card">
+      <article className="suggestions-card" id="analysis-suggestions">
         <div className="card-heading">
           <span className="panel-label">Suggestions</span>
           <h4>Edits to try next</h4>

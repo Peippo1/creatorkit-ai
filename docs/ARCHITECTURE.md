@@ -33,4 +33,4 @@
 
 ## Next Step
 
-The heuristic scoring service can later be replaced with a trained model or rules engine without changing the frontend contract.
+The planned sequence of product and platform work lives in [`docs/ROADMAP.md`](./ROADMAP.md). The heuristic scoring service can later be replaced with a trained model or rules engine without changing the frontend contract.

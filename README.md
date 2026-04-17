@@ -60,8 +60,11 @@ The original StreamSense notebooks are kept intact under `research/` so the repo
 
 ## Roadmap
 
-- persist analyses and user history
-- add authentication and creator accounts
-- replace the heuristic scorer with a trained model or hybrid rules layer
-- add content templates and saved drafts
-- add team review and sharing workflows
+The ordered roadmap lives in [`docs/ROADMAP.md`](docs/ROADMAP.md). The short version:
+
+1. Surface the top fix more prominently in the frontend
+2. Persist analyses and user history
+3. Add saved drafts and comparison
+4. Replace or augment the heuristic scorer
+5. Add authentication and creator accounts
+6. Deploy the product
