@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from ...schemas.input import AnalyzeRequest
 from ..scoring.profiles import (
     LONG_FORM_PLATFORMS,
@@ -8,6 +10,155 @@ from ..scoring.profiles import (
     normalize_text,
     word_count,
 )
+
+
+LEADING_WORDS = {
+    "a",
+    "an",
+    "be",
+    "before",
+    "do",
+    "for",
+    "from",
+    "here",
+    "how",
+    "if",
+    "in",
+    "is",
+    "it",
+    "make",
+    "most",
+    "many",
+    "need",
+    "of",
+    "one",
+    "our",
+    "stop",
+    "the",
+    "these",
+    "this",
+    "to",
+    "use",
+    "why",
+    "with",
+    "you",
+    "your",
+}
+
+
+def _platform_label(platform: str) -> str:
+    cleaned = " ".join(platform.split())
+    if not cleaned:
+        return "your platform"
+    return cleaned
+
+
+def _hook_theme(hook: str, niche: str) -> str:
+    text = normalize_text(hook).rstrip(".!?")
+    if not text:
+        fallback = normalize_text(niche).strip()
+        return fallback if fallback else "your next post"
+
+    words = text.split()
+    if len(words) > 12:
+        text = " ".join(words[:12])
+
+    return text
+
+
+def _strip_leading_words(text: str) -> str:
+    words = text.split()
+    while words and words[0] in LEADING_WORDS:
+        words.pop(0)
+    return " ".join(words)
+
+
+def _object_phrase(theme: str) -> str:
+    cleaned = _strip_leading_words(theme)
+    if not cleaned:
+        return theme
+
+    imperative_match = re.match(
+        r"^(?P<verb>make|stop|avoid|fix|build|use|write|create|turn|keep|add|get|lead|pitch|publish)\s+(?P<object>.+)$",
+        cleaned,
+    )
+    if imperative_match:
+        cleaned = _strip_leading_words(imperative_match.group("object"))
+        if cleaned:
+            return cleaned
+
+    audience_match = re.match(
+        r"^(?:most|many|some|few)\s+(?P<audience>[a-z0-9\s]+?)\s+(?P<verb>miss|make|avoid|fix|build|use|write|create|turn|keep|add|get|lead|pitch|publish)\s+(?P<object>.+)$",
+        theme,
+    )
+    if audience_match:
+        cleaned = _strip_leading_words(audience_match.group("object"))
+
+    if not cleaned:
+        return theme
+
+    return cleaned
+
+
+def _sentence_case(text: str) -> str:
+    if not text:
+        return text
+    return text[0].upper() + text[1:]
+
+
+def rewrite_hook(hook: str, platform: str, niche: str) -> list[str]:
+    platform_name = normalize_text(platform)
+    niche_name = normalize_text(niche).strip()
+    audience = niche_name if niche_name else "creators"
+    platform_label = _platform_label(platform)
+    theme = _hook_theme(hook, niche_name)
+    object_phrase = _object_phrase(theme)
+
+    numeric_theme = re.match(r"^(?P<count>\d+)\s+(?P<rest>.+)$", theme)
+
+    if numeric_theme:
+        count = numeric_theme.group("count")
+        rest = numeric_theme.group("rest")
+        rewritten = [
+            f"{count} {rest} {audience} should avoid",
+            f"Stop making these {count} {rest}",
+            f"If you're {audience}, avoid these {count} {rest}",
+        ]
+    elif platform_name in SHORT_FORM_PLATFORMS:
+        rewritten = [
+            f"Why {theme}",
+            f"The {object_phrase} {audience} miss",
+            f"Before you post on {platform_label}, avoid {object_phrase}",
+        ]
+    elif platform_name in LONG_FORM_PLATFORMS:
+        rewritten = [
+            f"Why {theme} keeps viewers watching",
+            f"The {object_phrase} long-form creators should use",
+            f"Before you film for {platform_label}, avoid {object_phrase}",
+        ]
+    elif platform_name in TEXT_FIRST_PLATFORMS:
+        rewritten = [
+            f"Why {theme} works on {platform_label}",
+            f"The cleaner way to {object_phrase}",
+            f"Before you post on {platform_label}, avoid {object_phrase}",
+        ]
+    else:
+        rewritten = [
+            f"Why {theme} matters for {audience}",
+            f"The {object_phrase} {audience} should use",
+            f"Before you publish, avoid {object_phrase}",
+        ]
+
+    rewritten = [_sentence_case(item.strip().rstrip(" .!?")) for item in rewritten]
+    deduped: list[str] = []
+    for item in rewritten:
+        if item not in deduped:
+            deduped.append(item)
+
+    while len(deduped) < 3:
+        deduped.append(_sentence_case(theme))
+
+    return deduped[:3]
 
 
 def build_feedback(
@@ -125,4 +276,5 @@ def build_feedback(
         "risks": risks,
         "critique": critique,
         "suggestions": suggestions[:3],
+        "rewritten_hooks": rewrite_hook(payload.hook, payload.platform, payload.niche),
     }

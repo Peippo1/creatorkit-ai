@@ -1010,6 +1010,69 @@ a.button {
   line-height: 1.6;
 }
 
+.hook-rewrite-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(138, 92, 246, 0.16);
+  background:
+    linear-gradient(135deg, rgba(138, 92, 246, 0.08), rgba(31, 94, 255, 0.06)),
+    rgba(255, 255, 255, 0.9);
+}
+
+.hook-rewrite-panel__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.hook-rewrite-panel__top h4 {
+  margin: 6px 0 6px;
+  font-size: 1.08rem;
+  letter-spacing: -0.04em;
+}
+
+.hook-rewrite-panel__top p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.hook-rewrite-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.hook-rewrite-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(23, 19, 18, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.hook-rewrite-index {
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hook-rewrite-card p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.hook-rewrite-empty {
+  margin: 0;
+  color: var(--muted);
+}
+
 .button--ghost {
   background: rgba(255, 255, 255, 0.86);
   color: var(--accent);

@@ -47,6 +47,7 @@ class AnalysisHistoryStoreTests(unittest.TestCase):
             risks=["None"],
             critique="This draft is close to publish-ready.",
             suggestions=[suggestion, "Keep the CTA direct."],
+            rewritten_hooks=["Rewrite 1", "Rewrite 2", "Rewrite 3"],
         )
 
     def test_save_and_list_history_by_client(self) -> None:

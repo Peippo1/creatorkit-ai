@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react"
+
 import type { AnalyzeResponse } from "@/lib/types"
 
 type ResultCardProps = {
@@ -39,6 +41,12 @@ function splitLead(items: string[], fallback: string): { lead: string; remainder
 }
 
 export function ResultCard({ result, isSubmitting }: ResultCardProps) {
+  const [showRewrites, setShowRewrites] = useState(false)
+
+  useEffect(() => {
+    setShowRewrites(false)
+  }, [result])
+
   if (isSubmitting && !result) {
     return (
       <aside className="panel result-card">
@@ -80,6 +88,7 @@ export function ResultCard({ result, isSubmitting }: ResultCardProps) {
   const strengths = splitLead(result.strengths, "No strong signals yet.")
   const risks = splitLead(result.risks, "No obvious risks from the current draft.")
   const suggestions = splitLead(result.suggestions, "Try a tighter opener and a clearer CTA.")
+  const rewrittenHooks = result.rewritten_hooks ?? []
 
   return (
     <aside className="panel result-card">
@@ -142,6 +151,42 @@ export function ResultCard({ result, isSubmitting }: ResultCardProps) {
         <a className="button button--ghost" href="#analysis-suggestions">
           Review all suggestions
         </a>
+      </section>
+
+      <section className="hook-rewrite-panel" aria-label="Improved hooks">
+        <div className="hook-rewrite-panel__top">
+          <div>
+            <span className="panel-label">Improved hooks</span>
+            <h4>Rewrite the opener</h4>
+            <p>
+              Turn the current hook into three tighter variations you can use right away.
+            </p>
+          </div>
+          <button
+            className="button button--ghost"
+            type="button"
+            onClick={() => setShowRewrites((current) => !current)}
+            aria-expanded={showRewrites}
+            aria-controls="rewritten-hooks"
+          >
+            {showRewrites ? "Hide rewrites" : "Rewrite Hook"}
+          </button>
+        </div>
+
+        {showRewrites ? (
+          <div className="hook-rewrite-grid" id="rewritten-hooks">
+            {rewrittenHooks.map((hook, index) => (
+              <article className="hook-rewrite-card" key={`${hook}-${index}`}>
+                <span className="hook-rewrite-index">Variation {index + 1}</span>
+                <p>{hook}</p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="hook-rewrite-empty">
+            Click <strong>Rewrite Hook</strong> to reveal three polished variations.
+          </p>
+        )}
       </section>
 
       <article className="result-callout" id="analysis-critique">

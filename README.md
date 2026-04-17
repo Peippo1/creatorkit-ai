@@ -65,6 +65,7 @@ For creator accounts, the Next.js app also expects Clerk environment variables:
 - returns an overall score and sub-scores for hook, clarity, and platform fit
 - uses profile-aware scoring so short-form, long-form, and text-first drafts are weighted differently
 - returns strengths, risks, critique, and suggestions
+- returns three rewritten hook variations for a faster next edit
 - persists recent analyses for the current browser session or signed-in creator account and shows history
 - saves draft snapshots for later comparison
 - lets signed-in creators edit a profile backed by a creator account record

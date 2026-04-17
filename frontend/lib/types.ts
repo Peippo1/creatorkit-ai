@@ -18,6 +18,7 @@ export type AnalyzeResponse = {
   risks: string[]
   critique: string
   suggestions: string[]
+  rewritten_hooks: string[]
 }
 
 export type AnalyzeInput = AnalyzeRequest

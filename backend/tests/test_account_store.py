@@ -57,6 +57,7 @@ class CreatorAccountStoreTests(unittest.TestCase):
             risks=["None"],
             critique="This draft is close to publish-ready.",
             suggestions=["Tighten the opening slightly."],
+            rewritten_hooks=["Rewrite 1", "Rewrite 2", "Rewrite 3"],
         )
 
     def test_creator_account_is_created_and_scoped(self) -> None:
