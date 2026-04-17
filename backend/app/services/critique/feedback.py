@@ -1,33 +1,13 @@
 from __future__ import annotations
 
 from ...schemas.input import AnalyzeRequest
-
-SHORT_FORM_PLATFORMS = {
-    "tiktok",
-    "instagram",
-    "instagram reels",
-    "reels",
-    "youtube shorts",
-    "shorts",
-}
-
-LONG_FORM_PLATFORMS = {
-    "youtube",
-}
-
-TEXT_FIRST_PLATFORMS = {
-    "linkedin",
-    "threads",
-    "x",
-}
-
-
-def _normalize(text: str) -> str:
-    return " ".join(text.lower().split())
-
-
-def _word_count(text: str) -> int:
-    return len([part for part in text.split() if part])
+from ..scoring.profiles import (
+    LONG_FORM_PLATFORMS,
+    SHORT_FORM_PLATFORMS,
+    TEXT_FIRST_PLATFORMS,
+    normalize_text,
+    word_count,
+)
 
 
 def build_feedback(
@@ -38,11 +18,11 @@ def build_feedback(
     risks: list[str] = []
     suggestions: list[str] = []
 
-    platform = _normalize(payload.platform)
-    content_type = _normalize(payload.content_type)
-    hook_words = _word_count(payload.hook)
-    caption_words = _word_count(payload.caption)
-    transcript_words = _word_count(payload.transcript)
+    platform = normalize_text(payload.platform)
+    content_type = normalize_text(payload.content_type)
+    hook_words = word_count(payload.hook)
+    caption_words = word_count(payload.caption)
+    transcript_words = word_count(payload.transcript)
     overall_score = int(scores["overall_score"])
     hook_score = int(scores["hook_score"])
     clarity_score = int(scores["clarity_score"])

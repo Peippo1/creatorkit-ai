@@ -1,25 +1,15 @@
 from __future__ import annotations
 
 from ...schemas.input import AnalyzeRequest
-
-SHORT_FORM_PLATFORMS = {
-    "tiktok",
-    "instagram",
-    "instagram reels",
-    "reels",
-    "youtube shorts",
-    "shorts",
-}
-
-LONG_FORM_PLATFORMS = {
-    "youtube",
-}
-
-TEXT_FIRST_PLATFORMS = {
-    "linkedin",
-    "threads",
-    "x",
-}
+from .profiles import (
+    SHORT_FORM_PLATFORMS,
+    LONG_FORM_PLATFORMS,
+    TEXT_FIRST_PLATFORMS,
+    calculate_overall_score,
+    normalize_text,
+    select_scoring_profile,
+    word_count,
+)
 
 HOOK_CURIOSITY_WORDS = {
     "how",
@@ -49,11 +39,11 @@ HOOK_VAGUE_WORDS = {
 
 
 def _normalize(text: str) -> str:
-    return " ".join(text.lower().split())
+    return normalize_text(text)
 
 
 def _word_count(text: str) -> int:
-    return len([part for part in text.split() if part])
+    return word_count(text)
 
 
 def _clamp(value: int) -> int:
@@ -193,16 +183,17 @@ def score_submission(payload: AnalyzeRequest) -> dict[str, int]:
     hook_score = _hook_score(payload)
     clarity_score = _clarity_score(payload)
     platform_fit_score = _platform_fit_score(payload)
-    overall_score = round(
-        (hook_score * 0.42) + (clarity_score * 0.33) + (platform_fit_score * 0.25)
+    profile = select_scoring_profile(payload)
+    overall_score = calculate_overall_score(
+        profile,
+        hook_score=hook_score,
+        clarity_score=clarity_score,
+        platform_fit_score=platform_fit_score,
+        has_cta=payload.has_cta,
+        hook_words=_word_count(payload.hook),
+        caption_words=_word_count(payload.caption),
+        transcript_words=_word_count(payload.transcript),
     )
-    if payload.has_cta:
-        overall_score += 4
-    else:
-        overall_score -= 4
-    if hook_score >= 75 and clarity_score >= 70 and platform_fit_score >= 70:
-        overall_score += 3
-    overall_score = _clamp(overall_score)
 
     return {
         "overall_score": overall_score,

@@ -54,6 +54,7 @@ By default the frontend expects the backend at `http://localhost:8000`. You can 
 
 - accepts platform, content type, hook, caption, transcript, duration, niche, and CTA intent
 - returns an overall score and sub-scores for hook, clarity, and platform fit
+- uses profile-aware scoring so short-form, long-form, and text-first drafts are weighted differently
 - returns strengths, risks, critique, and suggestions
 - persists recent analyses for the current browser session and shows history
 - saves draft snapshots for later comparison
