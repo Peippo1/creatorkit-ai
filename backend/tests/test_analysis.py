@@ -9,7 +9,7 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.schemas.input import AnalyzeRequest
-from app.services.critique.feedback import build_feedback
+from app.services.critique.feedback import build_feedback, rewrite_hook
 from app.services.scoring.predictor import score_submission
 
 
@@ -32,6 +32,8 @@ class AnalysisHeuristicsTests(unittest.TestCase):
         self.assertGreaterEqual(scores["overall_score"], 65)
         self.assertGreaterEqual(scores["hook_score"], 65)
         self.assertIn("clear next step", " ".join(feedback["strengths"]).lower())
+        self.assertEqual(len(feedback["rewritten_hooks"]), 3)
+        self.assertTrue(all(item for item in feedback["rewritten_hooks"]))
 
     def test_weak_draft_surfaces_clear_fix_themes(self) -> None:
         payload = AnalyzeRequest(
@@ -95,6 +97,17 @@ class AnalysisHeuristicsTests(unittest.TestCase):
         self.assertGreaterEqual(scores["overall_score"], 65)
         self.assertGreaterEqual(scores["clarity_score"], 70)
         self.assertTrue(any("longer-form platform" in item.lower() for item in feedback["strengths"]))
+
+    def test_rewrite_hook_returns_three_platform_aware_variations(self) -> None:
+        rewritten = rewrite_hook(
+            "Most founders miss this one pitch mistake.",
+            platform="LinkedIn",
+            niche="founders",
+        )
+
+        self.assertEqual(len(rewritten), 3)
+        self.assertTrue(any("LinkedIn" in item for item in rewritten))
+        self.assertTrue(any("founders" in item.lower() for item in rewritten))
 
 
 if __name__ == "__main__":

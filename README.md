@@ -36,6 +36,11 @@ Backend endpoints:
 
 - `GET /health`
 - `POST /analyze`
+- `GET /history`
+- `GET /drafts`
+- `POST /drafts`
+- `GET /account`
+- `PATCH /account`
 
 ### Frontend
 
@@ -47,11 +52,24 @@ npm run dev
 
 By default the frontend expects the backend at `http://localhost:8000`. You can override that with `NEXT_PUBLIC_API_BASE_URL`.
 
+For creator accounts, the Next.js app also expects Clerk environment variables:
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`
+- `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up`
+
 ## What the First Version Does
 
 - accepts platform, content type, hook, caption, transcript, duration, niche, and CTA intent
 - returns an overall score and sub-scores for hook, clarity, and platform fit
+- uses profile-aware scoring so short-form, long-form, and text-first drafts are weighted differently
 - returns strengths, risks, critique, and suggestions
+- returns three rewritten hook variations for a faster next edit
+- persists recent analyses for the current browser session or signed-in creator account and shows history
+- saves draft snapshots for later comparison
+- lets signed-in creators edit a profile backed by a creator account record
+- compares the selected saved draft against the current form
 - provides a clean landing page and analysis form
 
 ## Legacy Research
@@ -60,8 +78,11 @@ The original StreamSense notebooks are kept intact under `research/` so the repo
 
 ## Roadmap
 
-- persist analyses and user history
-- add authentication and creator accounts
-- replace the heuristic scorer with a trained model or hybrid rules layer
-- add content templates and saved drafts
-- add team review and sharing workflows
+The ordered roadmap lives in [`docs/ROADMAP.md`](docs/ROADMAP.md). The short version:
+
+1. Surface the top fix more prominently in the frontend
+2. Persist analyses and user history
+3. Add saved drafts and comparison
+4. Replace or augment the heuristic scorer
+5. Add authentication and creator accounts
+6. Deploy the product

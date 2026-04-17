@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
+import { ClerkProvider } from "@clerk/nextjs"
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google"
 
 import "./globals.css"
@@ -26,8 +27,10 @@ export default function RootLayout({
   children: ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`${spaceGrotesk.variable} ${ibmPlexMono.variable}`}>{children}</body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body className={`${spaceGrotesk.variable} ${ibmPlexMono.variable}`}>{children}</body>
+      </html>
+    </ClerkProvider>
   )
 }

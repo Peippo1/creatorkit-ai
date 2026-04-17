@@ -12,6 +12,7 @@ class AnalyzeResponse(BaseModel):
     risks: list[str]
     critique: str
     suggestions: list[str]
+    rewritten_hooks: list[str]
 
 
 AnalyzeOutput = AnalyzeResponse
