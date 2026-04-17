@@ -30,8 +30,12 @@ function scoreLabel(score: number): string {
   return "Early"
 }
 
-function fallbackList(items: string[], fallback: string): string[] {
-  return items.length > 0 ? items : [fallback]
+function splitLead(items: string[], fallback: string): { lead: string; remainder: string[] } {
+  if (items.length === 0) {
+    return { lead: fallback, remainder: [] }
+  }
+
+  return { lead: items[0], remainder: items.slice(1) }
 }
 
 export function ResultCard({ result, isSubmitting }: ResultCardProps) {
@@ -71,6 +75,11 @@ export function ResultCard({ result, isSubmitting }: ResultCardProps) {
     { label: "Clarity", value: result.clarity_score },
     { label: "Platform fit", value: result.platform_fit_score },
   ]
+  const strongestMetric = metrics.reduce((best, current) => (current.value > best.value ? current : best))
+  const weakestMetric = metrics.reduce((worst, current) => (current.value < worst.value ? current : worst))
+  const strengths = splitLead(result.strengths, "No strong signals yet.")
+  const risks = splitLead(result.risks, "No obvious risks from the current draft.")
+  const suggestions = splitLead(result.suggestions, "Try a tighter opener and a clearer CTA.")
 
   return (
     <aside className="panel result-card">
@@ -81,6 +90,29 @@ export function ResultCard({ result, isSubmitting }: ResultCardProps) {
         </div>
         <span className={`score-pill score-pill--${overallTone}`}>{scoreLabel(result.overall_score)}</span>
       </div>
+
+      <section className="result-summary" aria-label="Analysis summary">
+        <div className="summary-stat">
+          <span className="summary-label">Strongest area</span>
+          <strong>{strongestMetric.label}</strong>
+          <p>
+            {strongestMetric.value}/100. {strongestMetric.label.toLowerCase()} is the clearest
+            signal in the current draft.
+          </p>
+        </div>
+        <div className="summary-stat summary-stat--weak">
+          <span className="summary-label">Weakest area</span>
+          <strong>{weakestMetric.label}</strong>
+          <p>
+            {weakestMetric.value}/100. This is the first place to spend editing time.
+          </p>
+        </div>
+        <div className="summary-stat">
+          <span className="summary-label">Next edit</span>
+          <strong>Priority fix</strong>
+          <p>{suggestions.lead}</p>
+        </div>
+      </section>
 
       <div className={`score-hero score-hero--${overallTone}`}>
         <div className={`score-badge score-badge--${overallTone}`} aria-label={`Overall score ${result.overall_score}`}>
@@ -97,6 +129,18 @@ export function ResultCard({ result, isSubmitting }: ResultCardProps) {
           </p>
         </div>
       </div>
+
+      <article className="result-callout">
+        <div className="card-heading">
+          <span className="panel-label">Backend readout</span>
+          <h4>What the model is telling you</h4>
+        </div>
+        <p>{result.critique}</p>
+        <div className="callout-quote">
+          <span className="panel-label">Primary fix</span>
+          <strong>{suggestions.lead}</strong>
+        </div>
+      </article>
 
       <div className="mini-score-grid">
         {metrics.map((metric) => {
@@ -121,11 +165,14 @@ export function ResultCard({ result, isSubmitting }: ResultCardProps) {
             <span className="panel-label">Strengths</span>
             <h4>What is working</h4>
           </div>
-          <ul className="feedback-list">
-            {fallbackList(result.strengths, "No strong signals yet.").map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
+          <p className="feedback-lead">{strengths.lead}</p>
+          {strengths.remainder.length > 0 ? (
+            <ul className="feedback-list">
+              {strengths.remainder.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          ) : null}
         </article>
 
         <article className="feedback-card feedback-card--risks">
@@ -133,11 +180,14 @@ export function ResultCard({ result, isSubmitting }: ResultCardProps) {
             <span className="panel-label">Risks</span>
             <h4>What may hold it back</h4>
           </div>
-          <ul className="feedback-list">
-            {fallbackList(result.risks, "No obvious risks from the current draft.").map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
+          <p className="feedback-lead feedback-lead--warning">{risks.lead}</p>
+          {risks.remainder.length > 0 ? (
+            <ul className="feedback-list">
+              {risks.remainder.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          ) : null}
         </article>
       </div>
 
@@ -154,11 +204,14 @@ export function ResultCard({ result, isSubmitting }: ResultCardProps) {
           <span className="panel-label">Suggestions</span>
           <h4>Edits to try next</h4>
         </div>
-        <ul className="feedback-list">
-          {fallbackList(result.suggestions, "Try a tighter opener and a clearer CTA.").map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
+        <p className="feedback-lead">{suggestions.lead}</p>
+        {suggestions.remainder.length > 0 ? (
+          <ul className="feedback-list">
+            {suggestions.remainder.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        ) : null}
       </article>
     </aside>
   )
