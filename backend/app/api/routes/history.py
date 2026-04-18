@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, Header, Query, Request
 
+from ..internal_auth import verify_internal_request
 from ...schemas.history import AnalysisHistoryResponse
 from ...services.history.store import list_recent_analyses
 from ..utils import resolve_account_key
@@ -9,15 +10,22 @@ router = APIRouter(tags=["history"])
 
 @router.get("/history", response_model=AnalysisHistoryResponse)
 def history(
+    request: Request,
     client_id: str | None = Query(default=None, min_length=1),
-    account_key: str | None = Query(default=None, min_length=1),
     x_client_id: str | None = Header(default=None, alias="X-Client-Id"),
-    x_account_key: str | None = Header(default=None, alias="X-Account-Key"),
+    x_internal_assertion: str | None = Header(default=None, alias="X-Creatorkit-Assertion"),
     limit: int = Query(5, ge=1, le=20),
 ) -> AnalysisHistoryResponse:
+    route = request.url.path + (f"?{request.url.query}" if request.url.query else "")
+    internal_request = verify_internal_request(
+        assertion=x_internal_assertion,
+        method=request.method,
+        route=route,
+        body=b"",
+    )
     resolved_key = resolve_account_key(
-        account_key=account_key or x_account_key,
         client_id=client_id or x_client_id,
         fallback="anonymous",
+        trusted_account_key=internal_request.account_key if internal_request else None,
     )
     return AnalysisHistoryResponse(entries=list_recent_analyses(resolved_key, limit))

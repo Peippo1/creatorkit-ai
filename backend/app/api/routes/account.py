@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, Request
 
+from ..internal_auth import build_canonical_json, verify_internal_request
 from ...schemas.account import CreatorAccountResponse, CreatorAccountUpdate
 from ...services.history.store import ensure_creator_account, get_creator_account_summary
 from ..utils import resolve_account_key
@@ -11,16 +12,21 @@ router = APIRouter(tags=["account"])
 
 @router.get("/account", response_model=CreatorAccountResponse)
 def get_account(
-    client_id: str | None = None,
-    account_key: str | None = None,
-    x_client_id: str | None = Header(default=None, alias="X-Client-Id"),
-    x_account_key: str | None = Header(default=None, alias="X-Account-Key"),
+    request: Request,
     x_account_email: str | None = Header(default=None, alias="X-Account-Email"),
     x_account_name: str | None = Header(default=None, alias="X-Account-Name"),
+    x_internal_assertion: str | None = Header(default=None, alias="X-Creatorkit-Assertion"),
 ) -> CreatorAccountResponse:
+    route = request.url.path + (f"?{request.url.query}" if request.url.query else "")
+    internal_request = verify_internal_request(
+        assertion=x_internal_assertion,
+        method=request.method,
+        route=route,
+        body=b"",
+    )
     resolved_key = resolve_account_key(
-        account_key=account_key or x_account_key,
-        client_id=client_id or x_client_id,
+        trusted_account_key=internal_request.account_key if internal_request else None,
+        require_trusted_user=True,
     )
     ensure_creator_account(
         resolved_key,
@@ -33,16 +39,21 @@ def get_account(
 @router.patch("/account", response_model=CreatorAccountResponse)
 def update_account(
     payload: CreatorAccountUpdate,
-    client_id: str | None = None,
-    account_key: str | None = None,
-    x_client_id: str | None = Header(default=None, alias="X-Client-Id"),
-    x_account_key: str | None = Header(default=None, alias="X-Account-Key"),
+    request: Request,
     x_account_email: str | None = Header(default=None, alias="X-Account-Email"),
     x_account_name: str | None = Header(default=None, alias="X-Account-Name"),
+    x_internal_assertion: str | None = Header(default=None, alias="X-Creatorkit-Assertion"),
 ) -> CreatorAccountResponse:
+    route = request.url.path + (f"?{request.url.query}" if request.url.query else "")
+    internal_request = verify_internal_request(
+        assertion=x_internal_assertion,
+        method=request.method,
+        route=route,
+        body=build_canonical_json(payload.model_dump(mode="json")),
+    )
     resolved_key = resolve_account_key(
-        account_key=account_key or x_account_key,
-        client_id=client_id or x_client_id,
+        trusted_account_key=internal_request.account_key if internal_request else None,
+        require_trusted_user=True,
     )
     ensure_creator_account(
         resolved_key,

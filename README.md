@@ -42,6 +42,8 @@ Backend endpoints:
 - `GET /account`
 - `PATCH /account`
 
+The frontend talks to these routes through a same-origin Next.js proxy at `/api/backend/*` that forwards anonymous session requests to FastAPI.
+
 ### Frontend
 
 ```bash
@@ -50,14 +52,7 @@ npm install
 npm run dev
 ```
 
-By default the frontend expects the backend at `http://localhost:8000`. You can override that with `NEXT_PUBLIC_API_BASE_URL`.
-
-For creator accounts, the Next.js app also expects Clerk environment variables:
-
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
-- `CLERK_SECRET_KEY`
-- `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`
-- `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up`
+The Next.js proxy expects the backend at `http://localhost:8000` by default. You can override that server-side with `CREATORKIT_BACKEND_URL`.
 
 ## What the First Version Does
 
@@ -66,9 +61,8 @@ For creator accounts, the Next.js app also expects Clerk environment variables:
 - uses profile-aware scoring so short-form, long-form, and text-first drafts are weighted differently
 - returns strengths, risks, critique, and suggestions
 - returns three rewritten hook variations for a faster next edit
-- persists recent analyses for the current browser session or signed-in creator account and shows history
+- persists recent analyses for the current browser session and shows history
 - saves draft snapshots for later comparison
-- lets signed-in creators edit a profile backed by a creator account record
 - compares the selected saved draft against the current form
 - provides a clean landing page and analysis form
 

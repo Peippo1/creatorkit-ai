@@ -127,25 +127,25 @@ def rewrite_hook(hook: str, platform: str, niche: str) -> list[str]:
     elif platform_name in SHORT_FORM_PLATFORMS:
         rewritten = [
             f"Why {theme}",
-            f"The {object_phrase} {audience} miss",
+            f"The cleaner way to {object_phrase}",
             f"Before you post on {platform_label}, avoid {object_phrase}",
         ]
     elif platform_name in LONG_FORM_PLATFORMS:
         rewritten = [
             f"Why {theme} keeps viewers watching",
-            f"The {object_phrase} long-form creators should use",
+            f"The cleaner way to frame {object_phrase}",
             f"Before you film for {platform_label}, avoid {object_phrase}",
         ]
     elif platform_name in TEXT_FIRST_PLATFORMS:
         rewritten = [
             f"Why {theme} works on {platform_label}",
-            f"The cleaner way to {object_phrase}",
+            f"The cleaner way to say {object_phrase}",
             f"Before you post on {platform_label}, avoid {object_phrase}",
         ]
     else:
         rewritten = [
             f"Why {theme} matters for {audience}",
-            f"The {object_phrase} {audience} should use",
+            f"The cleaner way to frame {object_phrase}",
             f"Before you publish, avoid {object_phrase}",
         ]
 

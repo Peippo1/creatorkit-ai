@@ -12,10 +12,11 @@
 
 1. User opens the frontend.
 2. User fills out the analysis form.
-3. The frontend sends the payload to `POST /analyze`.
-4. The backend scores the draft with a lightweight heuristic predictor that calibrates weights by content profile.
-5. The backend stores the analysis in SQLite, links it to a creator account key, and returns scores plus critique and suggestions.
-6. The frontend renders the result card, refreshes the account-scoped history list, and keeps draft snapshots available for comparison.
+3. The browser sends requests to the same-origin Next.js proxy under `/api/backend/*`.
+4. The proxy forwards anonymous session requests to the Python backend.
+5. The backend scores the draft with a lightweight heuristic predictor and stores the analysis in SQLite.
+6. The backend returns scores, critique, suggestions, and rewritten hooks.
+7. The frontend renders the result card, refreshes the session-scoped history list, and keeps draft snapshots available for comparison.
 
 ## Backend
 
@@ -27,19 +28,19 @@
 - `/account` endpoint for the current creator profile and activity summary
 - service layer split into scoring and critique helpers
 - profile-aware scoring profiles for short-form, long-form, text-first, and general drafts
-- creator accounts backed by SQLite and Clerk-authenticated sign-in/sign-up pages
+- creator account and auth code kept in the repo for later reactivation, but not imported by the anonymous deployment
 - SQLite-backed persistence for analysis history and draft snapshots
 
 ## Frontend
 
 - Next.js App Router scaffold
 - single page landing experience
-- client-side form submission with local API wiring
+- client-side form submission through a same-origin Next.js backend proxy
 - result panel for score and feedback display
-- session- or account-scoped history panel for recent analyses
+- session-scoped history panel for recent analyses
 - saved draft library with current-form comparison
-- creator account panel for profile editing and activity counts
+- anonymous session flow only in the current deployed UI
 
 ## Next Step
 
-The planned sequence of product and platform work lives in [`docs/ROADMAP.md`](./ROADMAP.md). The current scorer is profile-aware and can later be replaced with a trained model or rules engine without changing the frontend contract. Authentication is layered on top of the account key flow so the backend can keep a stable contract while moving from anonymous sessions to named creators.
+The planned sequence of product and platform work lives in [`docs/ROADMAP.md`](./ROADMAP.md). The current scorer is profile-aware and can later be replaced with a trained model or rules engine without changing the frontend contract. The deployed UI is anonymous; creator auth/account code remains in the repository for later reactivation but is not imported into the current frontend.

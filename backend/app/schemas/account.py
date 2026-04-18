@@ -18,7 +18,7 @@ class CreatorAccountEntry(BaseModel):
 
 
 class CreatorAccountUpdate(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     email: str | None = Field(default=None, max_length=320)
     display_name: str | None = Field(default=None, max_length=120)

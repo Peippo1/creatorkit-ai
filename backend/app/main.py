@@ -1,5 +1,8 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .api.routes.analyze import router as analyze_router
 from .api.routes.account import router as account_router
@@ -25,6 +28,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+allowed_hosts = [
+    host.strip()
+    for host in os.getenv(
+        "CREATORKIT_TRUSTED_HOSTS",
+        "localhost,127.0.0.1,testserver",
+    ).split(",")
+    if host.strip()
+]
+
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
 app.include_router(health_router)
 app.include_router(analyze_router)
