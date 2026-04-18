@@ -1,4 +1,4 @@
-import os
+import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +10,8 @@ from .api.routes.drafts import router as drafts_router
 from .api.routes.health import router as health_router
 from .api.routes.history import router as history_router
 from .services.history.store import initialize_history_store
+
+logger = logging.getLogger(__name__)
 
 
 app = FastAPI(
@@ -29,16 +31,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-allowed_hosts = [
-    host.strip()
-    for host in os.getenv(
-        "CREATORKIT_TRUSTED_HOSTS",
-        "localhost,127.0.0.1,testserver",
-    ).split(",")
-    if host.strip()
-]
-
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 
 app.include_router(health_router)
 app.include_router(analyze_router)
@@ -49,7 +42,10 @@ app.include_router(history_router)
 
 @app.on_event("startup")
 def startup() -> None:
-    initialize_history_store()
+    try:
+        initialize_history_store()
+    except Exception as exc:
+        logger.warning("History store initialization skipped: %s", exc)
 
 
 @app.get("/")
