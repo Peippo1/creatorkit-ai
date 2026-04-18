@@ -13,7 +13,7 @@ type Tone = "strong" | "steady" | "weak"
 type TopFix = {
   title: string
   why: string
-  impact: string
+  nextStep: string
 }
 
 function scoreTone(score: number): Tone {
@@ -57,32 +57,32 @@ function fixForResult(result: AnalyzeResponse): TopFix {
 
   if (risks.includes("call to action") || risks.includes("cta")) {
     return {
-      title: "Clarify the CTA",
-      why: "Without a clear next step, viewers often stop after watching.",
-      impact: "A stronger CTA can improve clicks, replies, and conversion rate.",
+      title: "Give the ending a clear direction",
+      why: "When people know what to do next, they are more likely to keep moving.",
+      nextStep: "Try ending with one simple action, such as save, comment, or click.",
     }
   }
 
   if (weakestMetric.label === "hook") {
     return {
-      title: "Strengthen your hook",
-      why: "Weak hooks reduce engagement in the first 3 seconds.",
-      impact: "Improving the opener can increase scroll-stop rate and watch-through.",
+      title: "Strengthen the opening",
+      why: "The first line decides whether people keep watching or scroll away.",
+      nextStep: "Try starting with a surprising claim, a problem, or a clear promise.",
     }
   }
 
   if (weakestMetric.label === "clarity") {
     return {
-      title: "Make the point clearer",
-      why: "If the audience has to work to follow the idea, they drop off faster.",
-      impact: "Sharper clarity can improve comprehension and reduce early exits.",
+      title: "Make the main idea easier to follow",
+      why: "People stay longer when they can understand the point quickly.",
+      nextStep: "Try trimming extra words and leading with the main takeaway.",
     }
   }
 
   return {
-    title: "Tighten the platform fit",
-    why: "A draft that feels native to the feed reads as more trustworthy and complete.",
-    impact: "Better platform fit can improve completion rate and engagement.",
+    title: "Make it feel native to the platform",
+    why: "When the framing matches the feed, the draft feels easier to trust and consume.",
+    nextStep: "Try using the style that performs best on this platform, then re-score it.",
   }
 }
 
@@ -90,18 +90,18 @@ function coachInsight(result: AnalyzeResponse): string {
   const risks = `${result.risks.join(" ")} ${result.suggestions.join(" ")}`.toLowerCase()
 
   if (risks.includes("call to action") || risks.includes("cta")) {
-    return "Coach Insight: Make the next step obvious so attention turns into action."
+    return "Coach Insight: A clear ending gives the viewer a next step, which makes the draft easier to act on."
   }
 
   if (result.hook_score <= result.clarity_score && result.hook_score <= result.platform_fit_score) {
-    return "Coach Insight: The opening earns attention first, so sharpen the promise before polishing anything else."
+    return "Coach Insight: Openings matter because they decide if someone keeps watching. Lead with a strong promise or a clear problem."
   }
 
   if (result.clarity_score <= result.hook_score && result.clarity_score <= result.platform_fit_score) {
-    return "Coach Insight: Clarity helps the audience understand the point quickly, which keeps them moving."
+    return "Coach Insight: Clarity helps the audience understand the idea quickly. When the point is obvious, people are less likely to drop off."
   }
 
-  return "Coach Insight: Platform-native formatting makes the draft feel easier to trust and consume."
+  return "Coach Insight: Platform-native framing helps the content feel familiar and easier to trust. That usually makes the message land faster."
 }
 
 function deltaLabel(previous: number, current: number): { text: string; tone: "up" | "down" | "flat" } {
@@ -168,7 +168,7 @@ export function ResultCard({
   const insight = coachInsight(result)
   const scoreDelta =
     previousResult !== null ? deltaLabel(previousResult.overall_score, result.overall_score) : null
-  const hookLabels = ["High curiosity", "Authority tone", "Direct and punchy"]
+  const hookLabels = ["Curiosity-led", "Direct", "Authority"]
 
   return (
     <aside className="panel result-card">
@@ -181,7 +181,10 @@ export function ResultCard({
           <span className={`score-pill score-pill--${overallTone}`}>{scoreLabel(result.overall_score)}</span>
           {scoreDelta ? (
             <div className={`score-comparison score-comparison--${scoreDelta.tone}`}>
-              <span>Previous {previousResult?.overall_score}/100</span>
+              <span>Previous score</span>
+              <strong>{previousResult?.overall_score}/100</strong>
+              <span>Current score</span>
+              <strong>{result.overall_score}/100</strong>
               <strong>{scoreDelta.text}</strong>
             </div>
           ) : null}
@@ -191,8 +194,8 @@ export function ResultCard({
       {isSubmitting ? (
         <div className="result-rescoring">
           <span className="panel-label">Rescoring</span>
-          <strong>Applying your latest edit</strong>
-          <p>Keep refining the draft. The updated score will land here when it is ready.</p>
+          <strong>Re-scoring your latest edit</strong>
+          <p>Keep refining the draft above, then check the updated score right here.</p>
         </div>
       ) : null}
 
@@ -213,9 +216,9 @@ export function ResultCard({
           </p>
         </div>
         <div className="summary-stat">
-          <span className="summary-label">Next edit</span>
-          <strong>Priority fix</strong>
-          <p>{suggestions.lead}</p>
+          <span className="summary-label">Top Fix</span>
+          <strong>{topFix.title}</strong>
+          <p>{topFix.why}</p>
         </div>
       </section>
 
@@ -240,22 +243,22 @@ export function ResultCard({
 
       <section className="result-next-step" aria-label="Next step">
         <div className="result-next-step__copy">
-          <span className="panel-label">Next Step</span>
+          <span className="panel-label">Top Fix</span>
           <h4>{topFix.title}</h4>
-          <p>{suggestions.lead}</p>
+          <p>{topFix.why}</p>
           <dl className="result-next-step__details">
             <div>
               <dt>Why this matters</dt>
               <dd>{topFix.why}</dd>
             </div>
             <div>
-              <dt>Expected impact</dt>
-              <dd>{topFix.impact}</dd>
+              <dt>What to try next</dt>
+              <dd>{topFix.nextStep}</dd>
             </div>
           </dl>
         </div>
         <button className="button button--ghost" type="button" onClick={onRescore}>
-          Apply fix and rescore
+          Re-score this draft
         </button>
       </section>
 
@@ -270,7 +273,7 @@ export function ResultCard({
             <span className="panel-label">Improved Hooks</span>
             <h4>Rewrite the opener</h4>
             <p>
-              Use one of these to sharpen the hook, then rescore the draft with the new opener.
+              Pick the version that feels closest to your voice, then re-score the draft right here.
             </p>
           </div>
         </div>
