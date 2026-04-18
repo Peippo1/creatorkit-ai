@@ -1,5 +1,4 @@
 import { AnalysisWorkspace } from "@/components/analysis-workspace"
-import { AuthActions } from "@/components/auth-actions"
 
 export default function Home() {
   return (
@@ -15,7 +14,6 @@ export default function Home() {
 
         <nav className="topnav" aria-label="Primary">
           <a href="#analyse">Analyse</a>
-          <AuthActions />
         </nav>
       </header>
 
@@ -36,7 +34,7 @@ export default function Home() {
             <a className="button" href="#analyse">
               Analyse draft
             </a>
-            <span className="hero-note">Sign in to keep history and creator profile data synced</span>
+            <span className="hero-note">History and saved drafts stay in your browser session</span>
           </div>
 
           <div className="hero-points" aria-label="Product highlights">
