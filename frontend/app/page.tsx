@@ -75,8 +75,8 @@ export default function Home() {
             <h2>Run a draft through the scoring flow.</h2>
           </div>
           <p>
-            Fill in the core inputs and get a structured answer back from the local backend in a
-            single request.
+            Fill in the core inputs and get a structured answer back from your configured API
+            endpoint in a single request.
           </p>
         </div>
 

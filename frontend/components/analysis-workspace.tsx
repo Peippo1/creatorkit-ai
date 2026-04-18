@@ -232,7 +232,7 @@ export function AnalysisWorkspace() {
           <aside className="panel error-panel" role="alert">
             <h2>Backend error</h2>
             <p>{error}</p>
-            <p className="muted">Start the FastAPI backend and try again.</p>
+            <p className="muted">Check the API connection and try again.</p>
           </aside>
         ) : null}
 
