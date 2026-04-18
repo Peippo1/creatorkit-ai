@@ -1,13 +1,20 @@
-import { useEffect, useState } from "react"
-
 import type { AnalyzeResponse } from "@/lib/types"
 
 type ResultCardProps = {
   result: AnalyzeResponse | null
+  previousResult: AnalyzeResponse | null
   isSubmitting: boolean
+  onRescore: () => void
+  onUseHook: (hook: string) => void
 }
 
 type Tone = "strong" | "steady" | "weak"
+
+type TopFix = {
+  title: string
+  why: string
+  impact: string
+}
 
 function scoreTone(score: number): Tone {
   if (score >= 80) {
@@ -40,13 +47,81 @@ function splitLead(items: string[], fallback: string): { lead: string; remainder
   return { lead: items[0], remainder: items.slice(1) }
 }
 
-export function ResultCard({ result, isSubmitting }: ResultCardProps) {
-  const [showRewrites, setShowRewrites] = useState(false)
+function fixForResult(result: AnalyzeResponse): TopFix {
+  const risks = `${result.risks.join(" ")} ${result.suggestions.join(" ")}`.toLowerCase()
+  const weakestMetric = [
+    { label: "hook", value: result.hook_score },
+    { label: "clarity", value: result.clarity_score },
+    { label: "platform", value: result.platform_fit_score },
+  ].reduce((worst, current) => (current.value < worst.value ? current : worst))
 
-  useEffect(() => {
-    setShowRewrites(false)
-  }, [result])
+  if (risks.includes("call to action") || risks.includes("cta")) {
+    return {
+      title: "Clarify the CTA",
+      why: "Without a clear next step, viewers often stop after watching.",
+      impact: "A stronger CTA can improve clicks, replies, and conversion rate.",
+    }
+  }
 
+  if (weakestMetric.label === "hook") {
+    return {
+      title: "Strengthen your hook",
+      why: "Weak hooks reduce engagement in the first 3 seconds.",
+      impact: "Improving the opener can increase scroll-stop rate and watch-through.",
+    }
+  }
+
+  if (weakestMetric.label === "clarity") {
+    return {
+      title: "Make the point clearer",
+      why: "If the audience has to work to follow the idea, they drop off faster.",
+      impact: "Sharper clarity can improve comprehension and reduce early exits.",
+    }
+  }
+
+  return {
+    title: "Tighten the platform fit",
+    why: "A draft that feels native to the feed reads as more trustworthy and complete.",
+    impact: "Better platform fit can improve completion rate and engagement.",
+  }
+}
+
+function coachInsight(result: AnalyzeResponse): string {
+  const risks = `${result.risks.join(" ")} ${result.suggestions.join(" ")}`.toLowerCase()
+
+  if (risks.includes("call to action") || risks.includes("cta")) {
+    return "Coach Insight: Make the next step obvious so attention turns into action."
+  }
+
+  if (result.hook_score <= result.clarity_score && result.hook_score <= result.platform_fit_score) {
+    return "Coach Insight: The opening earns attention first, so sharpen the promise before polishing anything else."
+  }
+
+  if (result.clarity_score <= result.hook_score && result.clarity_score <= result.platform_fit_score) {
+    return "Coach Insight: Clarity helps the audience understand the point quickly, which keeps them moving."
+  }
+
+  return "Coach Insight: Platform-native formatting makes the draft feel easier to trust and consume."
+}
+
+function deltaLabel(previous: number, current: number): { text: string; tone: "up" | "down" | "flat" } {
+  const delta = current - previous
+  if (delta > 0) {
+    return { text: `Improved by +${delta}`, tone: "up" }
+  }
+  if (delta < 0) {
+    return { text: `Down ${Math.abs(delta)}`, tone: "down" }
+  }
+  return { text: "No change", tone: "flat" }
+}
+
+export function ResultCard({
+  result,
+  previousResult,
+  isSubmitting,
+  onRescore,
+  onUseHook,
+}: ResultCardProps) {
   if (isSubmitting && !result) {
     return (
       <aside className="panel result-card">
@@ -89,6 +164,11 @@ export function ResultCard({ result, isSubmitting }: ResultCardProps) {
   const risks = splitLead(result.risks, "No obvious risks from the current draft.")
   const suggestions = splitLead(result.suggestions, "Try a tighter opener and a clearer CTA.")
   const rewrittenHooks = result.rewritten_hooks ?? []
+  const topFix = fixForResult(result)
+  const insight = coachInsight(result)
+  const scoreDelta =
+    previousResult !== null ? deltaLabel(previousResult.overall_score, result.overall_score) : null
+  const hookLabels = ["High curiosity", "Authority tone", "Direct and punchy"]
 
   return (
     <aside className="panel result-card">
@@ -97,8 +177,24 @@ export function ResultCard({ result, isSubmitting }: ResultCardProps) {
           <span className="panel-label">Live result</span>
           <h3>Analysis result</h3>
         </div>
-        <span className={`score-pill score-pill--${overallTone}`}>{scoreLabel(result.overall_score)}</span>
+        <div className="result-top__right">
+          <span className={`score-pill score-pill--${overallTone}`}>{scoreLabel(result.overall_score)}</span>
+          {scoreDelta ? (
+            <div className={`score-comparison score-comparison--${scoreDelta.tone}`}>
+              <span>Previous {previousResult?.overall_score}/100</span>
+              <strong>{scoreDelta.text}</strong>
+            </div>
+          ) : null}
+        </div>
       </div>
+
+      {isSubmitting ? (
+        <div className="result-rescoring">
+          <span className="panel-label">Rescoring</span>
+          <strong>Applying your latest edit</strong>
+          <p>Keep refining the draft. The updated score will land here when it is ready.</p>
+        </div>
+      ) : null}
 
       <section className="result-summary" aria-label="Analysis summary">
         <div className="summary-stat">
@@ -124,7 +220,10 @@ export function ResultCard({ result, isSubmitting }: ResultCardProps) {
       </section>
 
       <div className={`score-hero score-hero--${overallTone}`}>
-        <div className={`score-badge score-badge--${overallTone}`} aria-label={`Overall score ${result.overall_score}`}>
+        <div
+          className={`score-badge score-badge--${overallTone}`}
+          aria-label={`Overall score ${result.overall_score}`}
+        >
           <div>
             <strong>{result.overall_score}</strong>
             <span>/ 100</span>
@@ -139,54 +238,60 @@ export function ResultCard({ result, isSubmitting }: ResultCardProps) {
         </div>
       </div>
 
-      <section className="result-focus" aria-label="Primary edit">
-        <div className="result-focus-copy">
-          <span className="panel-label">Priority fix</span>
-          <h4>{suggestions.lead}</h4>
-          <p>
-            This is the first change to make before publishing. It gives the draft the most
-            immediate lift based on the current backend readout.
-          </p>
+      <section className="result-next-step" aria-label="Next step">
+        <div className="result-next-step__copy">
+          <span className="panel-label">Next Step</span>
+          <h4>{topFix.title}</h4>
+          <p>{suggestions.lead}</p>
+          <dl className="result-next-step__details">
+            <div>
+              <dt>Why this matters</dt>
+              <dd>{topFix.why}</dd>
+            </div>
+            <div>
+              <dt>Expected impact</dt>
+              <dd>{topFix.impact}</dd>
+            </div>
+          </dl>
         </div>
-        <a className="button button--ghost" href="#analysis-suggestions">
-          Review all suggestions
-        </a>
+        <button className="button button--ghost" type="button" onClick={onRescore}>
+          Apply fix and rescore
+        </button>
       </section>
+
+      <article className="coach-insight" aria-label="Coach insight">
+        <span className="panel-label">Coach Insight</span>
+        <p>{insight}</p>
+      </article>
 
       <section className="hook-rewrite-panel" aria-label="Improved hooks">
         <div className="hook-rewrite-panel__top">
           <div>
-            <span className="panel-label">Improved hooks</span>
+            <span className="panel-label">Improved Hooks</span>
             <h4>Rewrite the opener</h4>
             <p>
-              Turn the current hook into three tighter variations you can use right away.
+              Use one of these to sharpen the hook, then rescore the draft with the new opener.
             </p>
           </div>
-          <button
-            className="button button--ghost"
-            type="button"
-            onClick={() => setShowRewrites((current) => !current)}
-            aria-expanded={showRewrites}
-            aria-controls="rewritten-hooks"
-          >
-            {showRewrites ? "Hide rewrites" : "Rewrite Hook"}
-          </button>
         </div>
 
-        {showRewrites ? (
-          <div className="hook-rewrite-grid" id="rewritten-hooks">
-            {rewrittenHooks.map((hook, index) => (
-              <article className="hook-rewrite-card" key={`${hook}-${index}`}>
-                <span className="hook-rewrite-index">Variation {index + 1}</span>
-                <p>{hook}</p>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="hook-rewrite-empty">
-            Click <strong>Rewrite Hook</strong> to reveal three polished variations.
-          </p>
-        )}
+        <div className="hook-rewrite-grid" id="rewritten-hooks">
+          {rewrittenHooks.map((hook, index) => (
+            <article className="hook-rewrite-card" key={`${hook}-${index}`}>
+              <div className="hook-rewrite-card__top">
+                <span className="hook-rewrite-index">{hookLabels[index] ?? `Variation ${index + 1}`}</span>
+                <button
+                  className="button button--ghost button--tiny"
+                  type="button"
+                  onClick={() => onUseHook(hook)}
+                >
+                  Use this hook
+                </button>
+              </div>
+              <p>{hook}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
       <article className="result-callout" id="analysis-critique">

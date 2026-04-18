@@ -48,6 +48,7 @@ function chooseSelectedDraftId(
 export function AnalysisWorkspace() {
   const [form, setForm] = useState<AnalyzeRequest>(DEFAULT_FORM)
   const [result, setResult] = useState<AnalyzeResponse | null>(null)
+  const [previousResult, setPreviousResult] = useState<AnalyzeResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
@@ -154,18 +155,20 @@ export function AnalysisWorkspace() {
     }))
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function runAnalysis(nextDraft: AnalyzeRequest) {
+    const nextSessionId = clientId ?? getAnalysisSessionId()
+    if (!clientId) {
+      setClientId(nextSessionId)
+    }
+
     setIsSubmitting(true)
     setError(null)
-    setResult(null)
+    if (result) {
+      setPreviousResult(result)
+    }
 
     try {
-      const nextSessionId = clientId ?? getAnalysisSessionId()
-      if (!clientId) {
-        setClientId(nextSessionId)
-      }
-      const analysis = await analyzeContent(form, nextSessionId)
+      const analysis = await analyzeContent(nextDraft, nextSessionId)
       setResult(analysis)
       await refreshHistory(nextSessionId)
     } catch (submitError) {
@@ -173,6 +176,11 @@ export function AnalysisWorkspace() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await runAnalysis(form)
   }
 
   async function handleSaveDraft() {
@@ -195,6 +203,19 @@ export function AnalysisWorkspace() {
     }
   }
 
+  async function handleApplyFixAndRescore() {
+    await runAnalysis(form)
+  }
+
+  async function handleUseHook(hook: string) {
+    const nextDraft = {
+      ...form,
+      hook,
+    }
+    setForm(nextDraft)
+    await runAnalysis(nextDraft)
+  }
+
   return (
     <div className="workspace-grid">
       <AnalysisForm
@@ -215,7 +236,13 @@ export function AnalysisWorkspace() {
           </aside>
         ) : null}
 
-        <ResultCard result={result} isSubmitting={isSubmitting} />
+        <ResultCard
+          result={result}
+          previousResult={previousResult}
+          isSubmitting={isSubmitting}
+          onRescore={handleApplyFixAndRescore}
+          onUseHook={handleUseHook}
+        />
 
         <aside className="panel account-cta">
           <span className="panel-label">Sessions</span>
