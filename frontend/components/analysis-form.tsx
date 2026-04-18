@@ -163,7 +163,7 @@ export function AnalysisForm({
         >
           {isSavingDraft ? "Saving..." : "Save draft"}
         </button>
-        <span className="helper">This connects to the local FastAPI backend.</span>
+        <span className="helper">Uses your configured API endpoint.</span>
       </div>
     </form>
   )
