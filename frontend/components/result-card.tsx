@@ -12,6 +12,7 @@ type ResultCardProps = {
 type Tone = "strong" | "steady" | "weak"
 
 type TopFix = {
+  area: "hook" | "clarity" | "platform" | "cta"
   title: string
   why: string
   nextStep: string
@@ -59,6 +60,7 @@ function fixForResult(result: AnalyzeResponse): TopFix {
 
   if (risks.includes("call to action") || risks.includes("cta")) {
     return {
+      area: "cta",
       title: "Give the ending a clear direction",
       why: "When people know what to do next, they are more likely to keep moving.",
       nextStep: "Try ending with one simple action, such as save, comment, or click.",
@@ -68,6 +70,7 @@ function fixForResult(result: AnalyzeResponse): TopFix {
 
   if (weakestMetric.label === "hook") {
     return {
+      area: "hook",
       title: "Strengthen the opening",
       why: "The first line decides whether people keep watching or scroll away.",
       nextStep: "Try starting with a surprising claim, a problem, or a clear promise.",
@@ -77,6 +80,7 @@ function fixForResult(result: AnalyzeResponse): TopFix {
 
   if (weakestMetric.label === "clarity") {
     return {
+      area: "clarity",
       title: "Make the main idea easier to follow",
       why: "People stay longer when they can understand the point quickly.",
       nextStep: "Try trimming extra words and leading with the main takeaway.",
@@ -85,10 +89,25 @@ function fixForResult(result: AnalyzeResponse): TopFix {
   }
 
   return {
+    area: "platform",
     title: "Make it feel native to the platform",
     why: "When the framing matches the feed, the draft feels easier to trust and consume.",
     nextStep: "Try using the style that performs best on this platform, then re-score it.",
     impact: "Platform-fit improvements can make the content feel more natural and easier to engage with.",
+  }
+}
+
+function fixLeadForArea(area: TopFix["area"]): string {
+  switch (area) {
+    case "cta":
+      return "A clear ending gives the viewer a simple next move."
+    case "hook":
+      return "The opening decides whether people keep watching."
+    case "clarity":
+      return "Clear framing helps the audience understand the idea quickly."
+    case "platform":
+    default:
+      return "Platform-native framing makes the draft feel easier to trust."
   }
 }
 
@@ -249,11 +268,6 @@ export function ResultCard({
             {weakestMetric.value}/100. This is the first place to spend editing time.
           </p>
         </div>
-        <div className="summary-stat">
-          <span className="summary-label">Top Fix</span>
-          <strong>{topFix.title}</strong>
-          <p>{topFix.why}</p>
-        </div>
       </section>
 
       <div className={`score-hero score-hero--${overallTone}`}>
@@ -277,8 +291,9 @@ export function ResultCard({
 
       <section className="result-next-step" aria-label="Next step">
         <div className="result-next-step__copy">
-          <span className="panel-label">Top Fix</span>
+          <span className="panel-label">Primary coaching moment</span>
           <h4>{topFix.title}</h4>
+          <p className="result-next-step__lede">{fixLeadForArea(topFix.area)}</p>
           <p>{topFix.why}</p>
           <div className="result-next-step__impact">
             <span>Expected impact</span>

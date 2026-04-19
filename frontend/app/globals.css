@@ -1299,20 +1299,21 @@ a.button {
 .result-next-step {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
+  gap: 18px;
   align-items: start;
-  padding: 20px;
-  border-radius: 24px;
-  border: 1px solid rgba(31, 94, 255, 0.14);
+  padding: 24px;
+  border-radius: 28px;
+  border: 1px solid rgba(31, 94, 255, 0.18);
   background:
-    linear-gradient(135deg, rgba(31, 94, 255, 0.08), rgba(138, 92, 246, 0.08)),
-    rgba(255, 255, 255, 0.94);
-  box-shadow: 0 18px 40px rgba(31, 94, 255, 0.08);
+    linear-gradient(135deg, rgba(31, 94, 255, 0.12), rgba(138, 92, 246, 0.1)),
+    rgba(255, 255, 255, 0.98);
+  box-shadow: 0 22px 48px rgba(31, 94, 255, 0.12);
 }
 
 .result-next-step__copy {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  position: relative;
 }
 
 .result-next-step__impact {
@@ -1339,14 +1340,21 @@ a.button {
 
 .result-next-step__copy h4 {
   margin: 0;
-  font-size: 1.18rem;
-  letter-spacing: -0.04em;
+  font-size: clamp(1.28rem, 2vw, 1.7rem);
+  line-height: 1.1;
+  letter-spacing: -0.05em;
 }
 
 .result-next-step__copy p {
   margin: 0;
   color: var(--muted);
   line-height: 1.6;
+}
+
+.result-next-step__lede {
+  color: var(--text) !important;
+  font-size: 1rem;
+  line-height: 1.65;
 }
 
 .result-next-step__details {
@@ -1357,7 +1365,7 @@ a.button {
 }
 
 .result-next-step__details div {
-  padding: 14px;
+  padding: 16px;
   border-radius: 18px;
   border: 1px solid rgba(23, 19, 18, 0.08);
   background: rgba(255, 255, 255, 0.88);
@@ -1381,6 +1389,8 @@ a.button {
 .result-next-step .button {
   align-self: center;
   white-space: nowrap;
+  min-height: 48px;
+  box-shadow: 0 16px 32px rgba(31, 94, 255, 0.2);
 }
 
 .coach-insight {
@@ -1473,8 +1483,8 @@ a.button {
   justify-content: space-between;
   gap: 16px;
   align-items: center;
-  padding: 14px 16px;
-  border-radius: 18px;
+  padding: 16px 18px;
+  border-radius: 20px;
   border: 1px solid rgba(15, 157, 88, 0.18);
   background: rgba(15, 157, 88, 0.08);
 }
@@ -1484,7 +1494,11 @@ a.button {
   margin-top: 6px;
   color: var(--text);
   line-height: 1.55;
-  max-width: 52ch;
+  max-width: 48ch;
+}
+
+.hook-applied-banner .panel-label {
+  color: var(--success);
 }
 
 .hook-applied-banner p {
@@ -1501,8 +1515,8 @@ a.button {
 .hook-rewrite-card {
   display: grid;
   gap: 8px;
-  padding: 14px 16px;
-  border-radius: 18px;
+  padding: 16px 18px;
+  border-radius: 20px;
   border: 1px solid rgba(23, 19, 18, 0.08);
   background: rgba(255, 255, 255, 0.9);
 }
@@ -1529,7 +1543,7 @@ a.button {
 
 .hook-rewrite-index {
   color: var(--accent);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1539,7 +1553,7 @@ a.button {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
-  padding: 0 8px;
+  padding: 0 9px;
   border-radius: 999px;
   background: rgba(15, 157, 88, 0.12);
   color: var(--success);
@@ -2081,6 +2095,10 @@ a.button {
 
   .result-next-step {
     grid-template-columns: 1fr;
+  }
+
+  .result-next-step__copy h4 {
+    font-size: 1.4rem;
   }
 
   .history-item-top {
