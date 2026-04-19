@@ -133,12 +133,12 @@ function coachInsight(result: AnalyzeResponse): string {
 function deltaLabel(previous: number, current: number): { text: string; tone: "up" | "down" | "flat" } {
   const delta = current - previous
   if (delta > 0) {
-    return { text: `Improved by +${delta}`, tone: "up" }
+    return { text: `+${delta}`, tone: "up" }
   }
   if (delta < 0) {
-    return { text: `Down ${Math.abs(delta)}`, tone: "down" }
+    return { text: `-${Math.abs(delta)}`, tone: "down" }
   }
-  return { text: "No change", tone: "flat" }
+  return { text: "0", tone: "flat" }
 }
 
 function coachingLoopMessage(previous: AnalyzeResponse | null, current: AnalyzeResponse): string | null {
@@ -235,7 +235,9 @@ export function ResultCard({
               <span>Current</span>
               <strong>{result.overall_score}</strong>
               <span>Delta</span>
-              <strong className="score-comparison__delta">{scoreDelta.text}</strong>
+              <strong className={`score-comparison__delta score-comparison__delta--${scoreDelta.tone}`}>
+                {scoreDelta.text}
+              </strong>
             </div>
           ) : null}
         </div>

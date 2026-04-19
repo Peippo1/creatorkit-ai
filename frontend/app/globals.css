@@ -1139,10 +1139,6 @@ a.button {
   letter-spacing: -0.02em;
 }
 
-.score-comparison__delta {
-  color: var(--success);
-}
-
 .score-comparison--up {
   border-color: rgba(15, 157, 88, 0.18);
   background: rgba(15, 157, 88, 0.08);
@@ -1162,6 +1158,18 @@ a.button {
 }
 
 .score-comparison--flat strong {
+  color: var(--muted);
+}
+
+.score-comparison__delta--up {
+  color: var(--success);
+}
+
+.score-comparison__delta--down {
+  color: #9a3412;
+}
+
+.score-comparison__delta--flat {
   color: var(--muted);
 }
 
