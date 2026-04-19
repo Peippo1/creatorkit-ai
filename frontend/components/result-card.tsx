@@ -283,9 +283,9 @@ export function ResultCard({
 
       {isAutoRescoring ? (
         <div className="result-rescoring result-rescoring--auto" aria-live="polite">
-          <span className="panel-label">Auto re-score</span>
-          <strong>Re-scoring after your hook choice</strong>
-          <p>{autoRescoreNote ?? "Updating the score now."}</p>
+        <span className="panel-label">Auto re-score</span>
+        <strong>Re-scoring after your hook choice</strong>
+        <p>{autoRescoreNote ?? "Updating..."}</p>
         </div>
       ) : null}
 

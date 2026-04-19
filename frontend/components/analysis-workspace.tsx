@@ -24,7 +24,7 @@ import { DraftComparison } from "./draft-comparison"
 import { ResultCard } from "./result-card"
 
 const AUTO_RESCORE_ENABLED = true
-const AUTO_RESCORE_DELAY_MS = 400
+const AUTO_RESCORE_DELAY_MS = 300
 
 const DEFAULT_FORM: AnalyzeRequest = {
   platform: "TikTok",
@@ -301,7 +301,7 @@ export function AnalysisWorkspace() {
     setAppliedHook(hook)
     if (AUTO_RESCORE_ENABLED) {
       setPendingAutoRescoreHook(hook)
-      setAutoRescoreNote("Preparing an automatic re-score...")
+      setAutoRescoreNote("Updating the score...")
     }
   }
 
