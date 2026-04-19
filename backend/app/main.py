@@ -8,7 +8,9 @@ from .api.routes.analyze import router as analyze_router
 from .api.routes.account import router as account_router
 from .api.routes.drafts import router as drafts_router
 from .api.routes.health import router as health_router
+from .api.routes.jobs import router as jobs_router
 from .api.routes.history import router as history_router
+from .api.routes.uploads import router as uploads_router
 from .api.routes.session import router as session_router
 from .services.history.store import initialize_history_store
 
@@ -38,6 +40,8 @@ app.include_router(health_router)
 app.include_router(analyze_router)
 app.include_router(account_router)
 app.include_router(drafts_router)
+app.include_router(uploads_router)
+app.include_router(jobs_router)
 app.include_router(history_router)
 app.include_router(session_router)
 
