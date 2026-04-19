@@ -14,24 +14,15 @@ function lowerPlatform(platform: string): string {
   return normalizeText(platform).toLowerCase()
 }
 
-function topicPhrase(niche: string): string {
-  const cleaned = normalizeText(niche)
-  return cleaned || "your topic"
-}
-
-function ideaPhrase(idea: string | undefined, niche: string): string {
-  return normalizeText(idea ?? "") || topicPhrase(niche)
+function ideaPhrase(idea: string | undefined): string {
+  return normalizeText(idea ?? "") || ""
 }
 
 function audienceSuffix(idea: string | undefined, niche: string): string {
-  if (!normalizeText(idea ?? "")) {
-    return ""
-  }
-
   const audience = normalizeText(niche)
   const subject = normalizeText(idea ?? "")
 
-  if (!audience) {
+  if (!audience || !subject) {
     return ""
   }
 
@@ -40,6 +31,30 @@ function audienceSuffix(idea: string | undefined, niche: string): string {
   }
 
   return ` for ${audience}`
+}
+
+function fallbackSubject(platform: string, contentType: string): string {
+  if (platform === "linkedin") {
+    return "your next LinkedIn post"
+  }
+
+  if (platform === "youtube") {
+    return "your next video"
+  }
+
+  if (platform === "tiktok" || platform === "instagram reels" || platform === "youtube shorts") {
+    return "your next short-form post"
+  }
+
+  if (contentType === "text_post") {
+    return "your next post"
+  }
+
+  if (contentType === "long_form") {
+    return "your next script"
+  }
+
+  return "your next draft"
 }
 
 function contentTypeLabel(contentType: string): string {
@@ -88,7 +103,7 @@ function hookFor(input: GenerateScriptInput, topic: string): string {
   const platform = lowerPlatform(input.platform)
   const format = hookFormatLabel(input.content_type)
   const audience = audienceSuffix(input.idea, input.niche)
-  const subject = topic
+  const subject = topic || fallbackSubject(platform, input.content_type)
 
   if (platform === "tiktok") {
     return `Stop the scroll: a sharper ${format} about ${subject}${audience}.`
@@ -126,7 +141,7 @@ function transcriptFor(input: GenerateScriptInput, topic: string): string {
   const format = contentTypeLabel(input.content_type)
   const audience = normalizeText(input.niche)
   const hasIdea = Boolean(normalizeText(input.idea ?? ""))
-  const subject = topic
+  const subject = topic || fallbackSubject(platform, input.content_type)
 
   if (input.content_type === "long_form" || platform === "youtube") {
     return [
@@ -178,7 +193,7 @@ function captionFor(input: GenerateScriptInput, topic: string): string {
   const platform = lowerPlatform(input.platform)
   const audience = normalizeText(input.niche)
   const hasIdea = Boolean(normalizeText(input.idea ?? ""))
-  const subject = topic
+  const subject = topic || fallbackSubject(platform, input.content_type)
 
   if (platform === "linkedin") {
     return `A starting point for a sharper post about ${subject}${hasIdea && audience ? ` for ${audience}` : ""}.`
@@ -200,7 +215,7 @@ function captionFor(input: GenerateScriptInput, topic: string): string {
 }
 
 export function generateScriptDraft(input: GenerateScriptInput): GeneratedScriptDraft {
-  const topic = ideaPhrase(input.idea, input.niche)
+  const topic = ideaPhrase(input.idea)
 
   return {
     hook: hookFor(input, topic),
