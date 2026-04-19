@@ -67,6 +67,38 @@ def _hook_theme(hook: str, niche: str) -> str:
     return text
 
 
+def _topic_phrase(niche: str) -> str:
+    cleaned = " ".join(normalize_text(niche).split()).strip()
+    if not cleaned:
+        return "creators"
+
+    lowered = cleaned.lower()
+    direct_audiences = {
+        "creators",
+        "founders",
+        "marketers",
+        "builders",
+        "operators",
+        "designers",
+        "writers",
+        "coaches",
+        "students",
+        "educators",
+        "consultants",
+    }
+
+    if lowered in direct_audiences or lowered.endswith("creators") or lowered.endswith("founders"):
+        return cleaned
+
+    if "creator" in lowered:
+        return f"people working in {cleaned}"
+
+    if " " in cleaned or lowered.endswith("ing"):
+        return f"people working in {cleaned}"
+
+    return cleaned
+
+
 def _strip_leading_words(text: str) -> str:
     words = text.split()
     while words and words[0] in LEADING_WORDS:
@@ -78,6 +110,10 @@ def _object_phrase(theme: str) -> str:
     cleaned = _strip_leading_words(theme)
     if not cleaned:
         return theme
+
+    into_match = re.search(r"\binto\b\s+(?P<object>.+)$", cleaned)
+    if into_match:
+        cleaned = into_match.group("object").strip()
 
     imperative_match = re.match(
         r"^(?P<verb>make|stop|avoid|fix|build|use|write|create|turn|keep|add|get|lead|pitch|publish)\s+(?P<object>.+)$",
@@ -98,6 +134,14 @@ def _object_phrase(theme: str) -> str:
     if not cleaned:
         return theme
 
+    first_word = cleaned.split()[0] if cleaned.split() else ""
+    if first_word not in {"a", "an", "the", "this", "these", "those"}:
+        lowered_theme = theme.lower()
+        if "this one" in lowered_theme:
+            cleaned = f"this one {cleaned}"
+        elif "this" in lowered_theme:
+            cleaned = f"this {cleaned}"
+
     return cleaned
 
 
@@ -107,47 +151,68 @@ def _sentence_case(text: str) -> str:
     return text[0].upper() + text[1:]
 
 
+def _count_focus(count: str, rest: str) -> str:
+    lowered = rest.lower()
+    if "mistake" in lowered:
+        noun = "mistakes"
+    elif "step" in lowered:
+        noun = "steps"
+    elif "idea" in lowered:
+        noun = "ideas"
+    elif "edit" in lowered:
+        noun = "edits"
+    elif "point" in lowered:
+        noun = "points"
+    else:
+        noun = "points"
+
+    return f"these {count} {noun}"
+
+
 def rewrite_hook(hook: str, platform: str, niche: str) -> list[str]:
     platform_name = normalize_text(platform)
     niche_name = normalize_text(niche).strip()
-    audience = niche_name if niche_name else "creators"
+    topic_phrase = _topic_phrase(niche_name)
+    topic_clause = f"for {topic_phrase}"
     platform_label = _platform_label(platform)
     theme = _hook_theme(hook, niche_name)
     object_phrase = _object_phrase(theme)
+    focus_phrase = object_phrase if object_phrase.lower() != theme.lower() else theme
 
     numeric_theme = re.match(r"^(?P<count>\d+)\s+(?P<rest>.+)$", theme)
 
     if numeric_theme:
         count = numeric_theme.group("count")
         rest = numeric_theme.group("rest")
+        count_focus = _count_focus(count, rest)
         rewritten = [
-            f"{count} {rest} {audience} should avoid",
-            f"Stop making these {count} {rest}",
-            f"If you're {audience}, avoid these {count} {rest}",
+            f"Why {count_focus} matter {topic_clause}",
+            f"Try this instead: lead with {count_focus}",
+            f"A stronger angle {topic_clause}: {count_focus}",
         ]
     elif platform_name in SHORT_FORM_PLATFORMS:
         rewritten = [
-            f"Why {theme}",
-            f"The cleaner way to {object_phrase}",
-            f"Before you post on {platform_label}, avoid {object_phrase}",
+            f"Why {focus_phrase} works {topic_clause}",
+            f"Try this instead: lead with {focus_phrase}",
+            f"A stronger angle {topic_clause}: {focus_phrase}",
         ]
     elif platform_name in LONG_FORM_PLATFORMS:
         rewritten = [
-            f"Why {theme} keeps viewers watching",
-            f"The cleaner way to frame {object_phrase}",
-            f"Before you film for {platform_label}, avoid {object_phrase}",
+            f"Why {focus_phrase} keeps viewers watching {topic_clause}",
+            f"Try this instead: lead with {focus_phrase}",
+            f"A stronger angle {topic_clause}: keep the promise clear",
         ]
     elif platform_name in TEXT_FIRST_PLATFORMS:
         rewritten = [
-            f"Why {theme} works on {platform_label}",
-            f"The cleaner way to say {object_phrase}",
-            f"Before you post on {platform_label}, avoid {object_phrase}",
+            f"Why {focus_phrase} works on {platform_label} {topic_clause}",
+            f"Try this instead: lead with {focus_phrase}",
+            f"A stronger angle {topic_clause}: keep it concise and direct",
         ]
     else:
         rewritten = [
-            f"Why {theme} matters for {audience}",
-            f"The cleaner way to frame {object_phrase}",
-            f"Before you publish, avoid {object_phrase}",
+            f"Why {focus_phrase} works {topic_clause}",
+            f"Try this instead: lead with {focus_phrase}",
+            f"A stronger angle {topic_clause}: {focus_phrase}",
         ]
 
     rewritten = [_sentence_case(item.strip().rstrip(" .!?")) for item in rewritten]

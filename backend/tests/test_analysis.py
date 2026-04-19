@@ -100,14 +100,28 @@ class AnalysisHeuristicsTests(unittest.TestCase):
 
     def test_rewrite_hook_returns_three_platform_aware_variations(self) -> None:
         rewritten = rewrite_hook(
-            "Most founders miss this one pitch mistake.",
+            "Turn one draft into a sharper post.",
+            platform="LinkedIn",
+            niche="creator education",
+        )
+
+        self.assertEqual(len(rewritten), 3)
+        self.assertTrue(any("sharper post" in item.lower() for item in rewritten))
+        self.assertTrue(any("people working in creator education" in item.lower() for item in rewritten))
+        self.assertTrue(all("If you're" not in item for item in rewritten))
+        self.assertTrue(all("should avoid" not in item.lower() for item in rewritten))
+
+    def test_rewrite_hook_handles_numeric_openers_without_awkward_subjects(self) -> None:
+        rewritten = rewrite_hook(
+            "3 mistakes founders make when pitching.",
             platform="LinkedIn",
             niche="founders",
         )
 
         self.assertEqual(len(rewritten), 3)
-        self.assertTrue(any("LinkedIn" in item for item in rewritten))
-        self.assertTrue(any("founders" in item.lower() for item in rewritten))
+        self.assertTrue(any(item.startswith("Why these 3 mistakes") for item in rewritten))
+        self.assertTrue(any(item.startswith("Try this instead: lead with these 3 mistakes") for item in rewritten))
+        self.assertTrue(all("If you're" not in item for item in rewritten))
 
 
 if __name__ == "__main__":
