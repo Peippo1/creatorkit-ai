@@ -1,9 +1,13 @@
 import type {
   AnalyzeRequest,
   AnalyzeResponse,
+  AnalysisJobResponse,
+  CreateAnalysisJobRequest,
   CreatorAccountResponse,
   CreatorAccountUpdate,
   AnalysisHistoryResponse,
+  GenerateUploadUrlRequest,
+  GenerateUploadUrlResponse,
   SavedDraftResponse,
   SavedDraftsResponse,
   SessionClearResponse,
@@ -144,6 +148,71 @@ export async function analyzeContent(
   )
 
   return (await response.json()) as AnalyzeResponse
+}
+
+export async function requestUploadUrl(
+  payload: GenerateUploadUrlRequest,
+  clientId?: string,
+): Promise<GenerateUploadUrlResponse> {
+  const response = await requestBackend(
+    "/uploads/url",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    {
+      clientId,
+      endpointLabel: "upload-url",
+      fallbackMessage: "Unable to prepare video upload",
+    },
+  )
+
+  return (await response.json()) as GenerateUploadUrlResponse
+}
+
+export async function createAnalysisJob(
+  payload: CreateAnalysisJobRequest,
+  clientId?: string,
+): Promise<AnalysisJobResponse> {
+  const response = await requestBackend(
+    "/jobs",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    {
+      clientId,
+      endpointLabel: "jobs-create",
+      fallbackMessage: "Unable to start video analysis",
+    },
+  )
+
+  return (await response.json()) as AnalysisJobResponse
+}
+
+export async function getAnalysisJob(
+  jobId: string,
+  clientId?: string,
+): Promise<AnalysisJobResponse> {
+  const response = await requestBackend(
+    `/jobs/${jobId}`,
+    {
+      method: "GET",
+    },
+    {
+      clientId,
+      endpointLabel: "jobs-status",
+      fallbackMessage: "Unable to load video analysis status",
+    },
+  )
+
+  return (await response.json()) as AnalysisJobResponse
 }
 
 export async function listAnalysisHistory(

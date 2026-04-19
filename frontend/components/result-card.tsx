@@ -5,6 +5,7 @@ type ResultCardProps = {
   previousResult: AnalyzeResponse | null
   selectedHook: string | null
   canRescore: boolean
+  isVideoJobActive: boolean
   isAutoRescoring: boolean
   autoRescoreNote: string | null
   isSubmitting: boolean
@@ -166,6 +167,7 @@ export function ResultCard({
   previousResult,
   selectedHook,
   canRescore,
+  isVideoJobActive,
   isAutoRescoring,
   autoRescoreNote,
   isSubmitting,
@@ -220,8 +222,8 @@ export function ResultCard({
   const scoreDelta =
     previousResult !== null ? deltaLabel(previousResult.overall_score, result.overall_score) : null
   const hookLabels = ["Curiosity-led", "Direct", "Authority"]
-  const rescoreDisabled = !canRescore
-  const rescoreButtonClass = canRescore ? "button" : "button button--ghost"
+  const rescoreDisabled = !canRescore || isVideoJobActive
+  const rescoreButtonClass = canRescore && !isVideoJobActive ? "button" : "button button--ghost"
 
   return (
     <aside className="panel result-card">
@@ -319,7 +321,11 @@ export function ResultCard({
         >
           Re-score this draft
         </button>
-        {!canRescore ? <p className="result-next-step__hint">Choose a rewritten hook or edit the opener to unlock this.</p> : null}
+        {!canRescore ? (
+          <p className="result-next-step__hint">Choose a rewritten hook or edit the opener to unlock this.</p>
+        ) : isVideoJobActive ? (
+          <p className="result-next-step__hint">Video analysis is running. The coaching actions unlock again once it finishes.</p>
+        ) : null}
       </section>
 
       <section className="hook-rewrite-panel" aria-label="Improved hooks">
@@ -363,6 +369,7 @@ export function ResultCard({
                   className="button button--ghost button--tiny"
                   type="button"
                   onClick={() => onUseHook(hook)}
+                  disabled={isVideoJobActive}
                 >
                   Use this hook
                 </button>

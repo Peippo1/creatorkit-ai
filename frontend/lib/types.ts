@@ -24,6 +24,47 @@ export type AnalyzeResponse = {
 export type AnalyzeInput = AnalyzeRequest
 export type AnalyzeOutput = AnalyzeResponse
 
+export type GenerateUploadUrlRequest = {
+  file_name: string
+  content_type?: string | null
+}
+
+export type GenerateUploadUrlResponse = {
+  upload_id: string
+  upload_url: string
+  method: string
+  object_key: string
+  expires_in_seconds: number
+  headers: Record<string, string>
+}
+
+export type CreateAnalysisJobRequest = {
+  platform: string
+  content_type: string
+  niche: string
+  duration_seconds: number
+  has_cta: boolean
+  upload_id?: string | null
+  upload_filename?: string | null
+  idea?: string | null
+  hook?: string | null
+  caption?: string | null
+  transcript?: string | null
+}
+
+export type AnalysisJobStatus = "pending" | "processing" | "complete" | "failed"
+
+export type AnalysisJobResponse = {
+  job_id: string
+  status: AnalysisJobStatus
+  created_at: string
+  updated_at: string
+  upload_id: string | null
+  upload_filename: string | null
+  result: AnalyzeResponse | null
+  error: string | null
+}
+
 export type AnalysisHistoryEntry = {
   id: number
   created_at: string

@@ -11,6 +11,7 @@ type AnalysisFormProps = {
   isSubmitting: boolean
   isSavingDraft: boolean
   isGeneratingScript: boolean
+  isVideoJobActive: boolean
   draftIdea: string
   videoFile: File | null
   videoPreviewUrl: string | null
@@ -48,6 +49,7 @@ export function AnalysisForm({
   isSubmitting,
   isSavingDraft,
   isGeneratingScript,
+  isVideoJobActive,
   draftIdea,
   videoFile,
   videoPreviewUrl,
@@ -78,7 +80,7 @@ export function AnalysisForm({
             className="button button--ghost"
             type="button"
             onClick={onGenerateScript}
-            disabled={isSubmitting || isSavingDraft || isGeneratingScript}
+            disabled={isSubmitting || isSavingDraft || isGeneratingScript || isVideoJobActive}
           >
             {isGeneratingScript ? "Generating draft..." : "Generate script ✨"}
           </button>
@@ -223,14 +225,18 @@ export function AnalysisForm({
       </label>
 
       <div className="actions">
-        <button className="button" type="submit" disabled={isSubmitting || isGeneratingScript}>
+        <button
+          className="button"
+          type="submit"
+          disabled={isSubmitting || isGeneratingScript || isVideoJobActive}
+        >
           {isSubmitting ? "Analyzing..." : "Analyze draft"}
         </button>
         <button
           className="button button--ghost"
           type="button"
           onClick={onSaveDraft}
-          disabled={isSavingDraft || isSubmitting || isGeneratingScript}
+          disabled={isSavingDraft || isSubmitting || isGeneratingScript || isVideoJobActive}
         >
           {isSavingDraft ? "Saving..." : "Save draft"}
         </button>
