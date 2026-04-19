@@ -5,7 +5,8 @@ type ResultCardProps = {
   previousResult: AnalyzeResponse | null
   selectedHook: string | null
   canRescore: boolean
-  isVideoJobActive: boolean
+  isProcessingActive: boolean
+  isProcessingVisible: boolean
   isAutoRescoring: boolean
   autoRescoreNote: string | null
   isSubmitting: boolean
@@ -167,7 +168,8 @@ export function ResultCard({
   previousResult,
   selectedHook,
   canRescore,
-  isVideoJobActive,
+  isProcessingActive,
+  isProcessingVisible,
   isAutoRescoring,
   autoRescoreNote,
   isSubmitting,
@@ -175,6 +177,10 @@ export function ResultCard({
   onUseHook,
 }: ResultCardProps) {
   if (isSubmitting && !result) {
+    if (isProcessingVisible) {
+      return null
+    }
+
     return (
       <aside className="panel result-card">
         <div className="result-top">
@@ -189,6 +195,10 @@ export function ResultCard({
   }
 
   if (!result) {
+    if (isProcessingVisible) {
+      return null
+    }
+
     return (
       <aside className="panel result-card">
         <div className="result-top">
@@ -222,8 +232,8 @@ export function ResultCard({
   const scoreDelta =
     previousResult !== null ? deltaLabel(previousResult.overall_score, result.overall_score) : null
   const hookLabels = ["Curiosity-led", "Direct", "Authority"]
-  const rescoreDisabled = !canRescore || isVideoJobActive
-  const rescoreButtonClass = canRescore && !isVideoJobActive ? "button" : "button button--ghost"
+  const rescoreDisabled = !canRescore || isProcessingActive
+  const rescoreButtonClass = canRescore && !isProcessingActive ? "button" : "button button--ghost"
 
   return (
     <aside className="panel result-card">
@@ -323,8 +333,8 @@ export function ResultCard({
         </button>
         {!canRescore ? (
           <p className="result-next-step__hint">Choose a rewritten hook or edit the opener to unlock this.</p>
-        ) : isVideoJobActive ? (
-          <p className="result-next-step__hint">Video analysis is running. The coaching actions unlock again once it finishes.</p>
+        ) : isProcessingActive ? (
+          <p className="result-next-step__hint">Processing is running. The coaching actions unlock again once it finishes.</p>
         ) : null}
       </section>
 
@@ -369,7 +379,7 @@ export function ResultCard({
                   className="button button--ghost button--tiny"
                   type="button"
                   onClick={() => onUseHook(hook)}
-                  disabled={isVideoJobActive}
+                  disabled={isProcessingActive}
                 >
                   Use this hook
                 </button>
