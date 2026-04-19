@@ -165,6 +165,10 @@ export function AnalysisForm({
         </button>
         <span className="helper">Uses your configured API endpoint.</span>
       </div>
+
+      <p className="trust-note">
+        <strong>Trust note:</strong> We do not use your content to train models.
+      </p>
     </form>
   )
 }
