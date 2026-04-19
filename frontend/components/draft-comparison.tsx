@@ -38,6 +38,16 @@ const COMPARISON_FIELDS: Array<keyof AnalyzeRequest> = [
   "has_cta",
 ]
 
+const CONTENT_TYPE_LABELS: Record<string, string> = {
+  short_video: "Short-form video",
+  hook_led_video: "Hook-led video",
+  educational_carousel: "Educational carousel",
+  tutorial: "Tutorial",
+  thread: "Thread",
+  text_post: "Post draft",
+  long_form: "Long-form script",
+}
+
 function formatValue(field: keyof AnalyzeRequest, value: AnalyzeRequest[keyof AnalyzeRequest]): string {
   if (field === "has_cta") {
     return value ? "Yes" : "No"
@@ -45,6 +55,10 @@ function formatValue(field: keyof AnalyzeRequest, value: AnalyzeRequest[keyof An
 
   if (field === "duration_seconds") {
     return `${value}s`
+  }
+
+  if (field === "content_type") {
+    return CONTENT_TYPE_LABELS[String(value)] ?? String(value).replaceAll("_", " ")
   }
 
   return String(value)

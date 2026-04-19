@@ -1,5 +1,6 @@
 const ANALYSIS_SESSION_KEY = "creatorkit-ai.analysis-session-id"
 const SESSION_PREFIX = "session:"
+const SESSION_PATTERN = /^session:[A-Za-z0-9._:-]{8,160}$/
 
 function normalizeSessionId(value: string): string | null {
   const trimmed = value.trim()
@@ -7,7 +8,7 @@ function normalizeSessionId(value: string): string | null {
     return null
   }
 
-  if (trimmed === "anonymous" || trimmed.startsWith(SESSION_PREFIX)) {
+  if (SESSION_PATTERN.test(trimmed)) {
     return trimmed
   }
 
@@ -45,4 +46,13 @@ export function getAnalysisSessionId(): string {
   const next = generateSessionId()
   window.localStorage.setItem(ANALYSIS_SESSION_KEY, next)
   return next
+}
+
+export function clearAnalysisSession(): string {
+  if (typeof window === "undefined") {
+    return "anonymous"
+  }
+
+  window.localStorage.removeItem(ANALYSIS_SESSION_KEY)
+  return getAnalysisSessionId()
 }

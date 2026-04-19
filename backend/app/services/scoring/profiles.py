@@ -32,10 +32,18 @@ def normalize_content_type(text: str) -> str:
     content_type = normalize_text(text)
     alias_map = {
         "short_video": "short-form video",
+        "short-form video": "short-form video",
+        "short form video": "short-form video",
         "hook_led_video": "hook-led video",
+        "hook-led video": "hook-led video",
+        "hook led short form video": "hook-led video",
         "educational_carousel": "educational carousel",
+        "educational carousel": "educational carousel",
         "text_post": "text post",
+        "text post": "text post",
+        "post draft": "text post",
         "long_form": "long-form script",
+        "long-form script": "long-form script",
     }
     return alias_map.get(content_type, content_type)
 

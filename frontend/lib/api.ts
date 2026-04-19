@@ -6,6 +6,7 @@ import type {
   AnalysisHistoryResponse,
   SavedDraftResponse,
   SavedDraftsResponse,
+  SessionClearResponse,
 } from "@/lib/types"
 
 const API_BASE_PATH = "/api/backend"
@@ -233,4 +234,20 @@ export async function updateCreatorAccount(payload: CreatorAccountUpdate): Promi
   })
 
   return (await response.json()) as CreatorAccountResponse
+}
+
+export async function clearSession(clientId?: string): Promise<SessionClearResponse> {
+  const response = await requestBackend(
+    "/session",
+    {
+      method: "DELETE",
+    },
+    {
+      clientId,
+      endpointLabel: "session-clear",
+      fallbackMessage: "Unable to clear session",
+    },
+  )
+
+  return (await response.json()) as SessionClearResponse
 }

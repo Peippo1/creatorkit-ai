@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Header, Request
 
+from ..rate_limit import enforce_rate_limit
 from ..internal_auth import build_canonical_json, verify_internal_request
 from ...schemas.account import CreatorAccountResponse, CreatorAccountUpdate
 from ...services.history.store import ensure_creator_account, get_creator_account_summary
@@ -28,6 +29,7 @@ def get_account(
         trusted_account_key=internal_request.account_key if internal_request else None,
         require_trusted_user=True,
     )
+    enforce_rate_limit("account", resolved_key, limit=10, window_seconds=60)
     ensure_creator_account(
         resolved_key,
         email=x_account_email,
@@ -55,6 +57,7 @@ def update_account(
         trusted_account_key=internal_request.account_key if internal_request else None,
         require_trusted_user=True,
     )
+    enforce_rate_limit("account", resolved_key, limit=10, window_seconds=60)
     ensure_creator_account(
         resolved_key,
         email=payload.email or x_account_email,

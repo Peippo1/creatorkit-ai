@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Header, Query, Request
 
+from ..rate_limit import enforce_rate_limit
 from ..internal_auth import verify_internal_request
 from ...schemas.history import AnalysisHistoryResponse
 from ...services.history.store import list_recent_analyses
@@ -28,4 +29,5 @@ def history(
         fallback="anonymous",
         trusted_account_key=internal_request.account_key if internal_request else None,
     )
+    enforce_rate_limit("history", resolved_key, limit=30, window_seconds=60)
     return AnalysisHistoryResponse(entries=list_recent_analyses(resolved_key, limit))

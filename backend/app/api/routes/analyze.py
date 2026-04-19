@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Header, Request
 
+from ..rate_limit import enforce_rate_limit
 from ..internal_auth import build_canonical_json, verify_internal_request
 from ...schemas.input import AnalyzeRequest
 from ...schemas.output import AnalyzeResponse
@@ -30,6 +31,7 @@ def analyze(
         fallback="anonymous",
         trusted_account_key=internal_request.account_key if internal_request else None,
     )
+    enforce_rate_limit("analyze", account_key, limit=12, window_seconds=60)
     scores = score_submission(payload)
     feedback = build_feedback(payload, scores)
     result = AnalyzeResponse(**scores, **feedback)

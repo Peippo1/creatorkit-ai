@@ -5,11 +5,12 @@ import type { FormEvent } from "react"
 
 import {
   analyzeContent,
+  clearSession,
   listAnalysisHistory,
   listSavedDrafts,
   saveDraft,
 } from "@/lib/api"
-import { getAnalysisSessionId } from "@/lib/session"
+import { clearAnalysisSession, getAnalysisSessionId } from "@/lib/session"
 import type {
   AnalyzeRequest,
   AnalyzeResponse,
@@ -46,7 +47,7 @@ function chooseSelectedDraftId(
 }
 
 function hasSessionId(value: string | null): value is string {
-  return typeof value === "string" && value.startsWith("session:")
+  return typeof value === "string" && /^session:[A-Za-z0-9._:-]{8,160}$/.test(value)
 }
 
 export function AnalysisWorkspace() {
@@ -56,6 +57,7 @@ export function AnalysisWorkspace() {
   const [analysisError, setAnalysisError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
+  const [isClearingSession, setIsClearingSession] = useState(false)
   const [clientId, setClientId] = useState<string | null>(null)
   const [historyEntries, setHistoryEntries] = useState<AnalysisHistoryEntry[]>([])
   const [isHistoryLoading, setIsHistoryLoading] = useState(true)
@@ -241,6 +243,35 @@ export function AnalysisWorkspace() {
     }
   }
 
+  async function handleClearSession() {
+    const nextSessionId = clientId ?? getAnalysisSessionId()
+    if (!hasSessionId(nextSessionId)) {
+      setAnalysisError("Unable to clear session: missing session identifier")
+      return
+    }
+
+    setIsClearingSession(true)
+    try {
+      await clearSession(nextSessionId)
+      const rotatedSessionId = clearAnalysisSession()
+      setClientId(rotatedSessionId)
+      setResult(null)
+      setPreviousResult(null)
+      setAnalysisError(null)
+      setHistoryError(null)
+      setDraftsError(null)
+      setHistoryEntries([])
+      setDraftEntries([])
+      setSelectedDraftId(null)
+    } catch (clearError) {
+      setAnalysisError(
+        clearError instanceof Error ? clearError.message : "Unable to clear session",
+      )
+    } finally {
+      setIsClearingSession(false)
+    }
+  }
+
   async function handleApplyFixAndRescore() {
     await runAnalysis(form)
   }
@@ -292,6 +323,14 @@ export function AnalysisWorkspace() {
             Saved drafts and recent analyses are tied to a temporary browser session for the
             current deployment.
           </p>
+          <button
+            className="button button--ghost"
+            type="button"
+            onClick={handleClearSession}
+            disabled={isClearingSession || isSubmitting || isSavingDraft}
+          >
+            {isClearingSession ? "Clearing..." : "Clear session"}
+          </button>
         </aside>
 
         <AnalysisHistory

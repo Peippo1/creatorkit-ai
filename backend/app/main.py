@@ -9,6 +9,7 @@ from .api.routes.account import router as account_router
 from .api.routes.drafts import router as drafts_router
 from .api.routes.health import router as health_router
 from .api.routes.history import router as history_router
+from .api.routes.session import router as session_router
 from .services.history.store import initialize_history_store
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ app.include_router(analyze_router)
 app.include_router(account_router)
 app.include_router(drafts_router)
 app.include_router(history_router)
+app.include_router(session_router)
 
 
 @app.on_event("startup")

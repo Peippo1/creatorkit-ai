@@ -58,6 +58,12 @@ export type SavedDraftsResponse = {
   entries: SavedDraftEntry[]
 }
 
+export type SessionClearResponse = {
+  analyses_deleted: number
+  drafts_deleted: number
+  sessions_deleted: number
+}
+
 export type CreatorAccountEntry = {
   account_key: string
   provider: string

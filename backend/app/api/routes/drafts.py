@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Header, Query, Request
 
+from ..rate_limit import enforce_rate_limit
 from ..internal_auth import build_canonical_json, verify_internal_request
 from ...schemas.drafts import SavedDraftResponse, SavedDraftsResponse
 from ...schemas.input import AnalyzeRequest
@@ -28,6 +29,7 @@ def create_draft(
         fallback="anonymous",
         trusted_account_key=internal_request.account_key if internal_request else None,
     )
+    enforce_rate_limit("drafts-write", account_key, limit=15, window_seconds=60)
     entry = save_draft(account_key, payload)
     return SavedDraftResponse(entry=entry)
 
@@ -52,4 +54,5 @@ def drafts(
         fallback="anonymous",
         trusted_account_key=internal_request.account_key if internal_request else None,
     )
+    enforce_rate_limit("drafts-read", resolved_key, limit=30, window_seconds=60)
     return SavedDraftsResponse(entries=list_saved_drafts(resolved_key, limit))

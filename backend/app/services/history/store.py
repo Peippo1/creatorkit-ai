@@ -4,18 +4,19 @@ import json
 import os
 import sqlite3
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from ...schemas.drafts import SavedDraftEntry
 from ...schemas.account import CreatorAccountEntry, CreatorAccountResponse
 from ...schemas.history import AnalysisHistoryEntry
-from ...schemas.input import AnalyzeRequest
+from ...schemas.input import AnalyzeRequest, display_content_type_label
 from ...schemas.output import AnalyzeResponse
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parents[4] / "backend" / "data" / "analysis_history.sqlite3"
 DB_PATH_ENV = "CREATORKIT_HISTORY_DB_PATH"
-
+SESSION_RETENTION_DAYS_ENV = "CREATORKIT_SESSION_RETENTION_DAYS"
+SESSION_RETENTION_LIMIT_ENV = "CREATORKIT_SESSION_RETENTION_LIMIT"
 
 def _db_path() -> Path:
     configured = os.getenv(DB_PATH_ENV)
@@ -27,6 +28,18 @@ def _db_path() -> Path:
 def _timestamp(now: datetime | None = None) -> str:
     value = now or datetime.now(UTC)
     return value.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _is_anonymous_session(client_id: str) -> bool:
+    return client_id.startswith("session:")
+
+
+def _session_retention_days() -> int:
+    return int(os.getenv(SESSION_RETENTION_DAYS_ENV, "30"))
+
+
+def _session_retention_limit() -> int:
+    return int(os.getenv(SESSION_RETENTION_LIMIT_ENV, "5"))
 
 
 @contextmanager
@@ -49,6 +62,7 @@ def _connect():
 def initialize_history_store() -> None:
     with _connect():
         pass
+    prune_history_store()
 
 
 def _ensure_schema(conn: sqlite3.Connection) -> None:
@@ -111,7 +125,121 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS sessions (
+            client_id TEXT PRIMARY KEY,
+            created_at TEXT NOT NULL,
+            last_activity_at TEXT NOT NULL,
+            analysis_count INTEGER NOT NULL DEFAULT 0,
+            draft_count INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_sessions_last_activity
+        ON sessions(last_activity_at DESC, created_at DESC)
+        """
+    )
     conn.commit()
+
+
+def _touch_session(
+    conn: sqlite3.Connection,
+    client_id: str,
+    *,
+    analysis_delta: int = 0,
+    draft_delta: int = 0,
+    timestamp: str | None = None,
+) -> None:
+    if not _is_anonymous_session(client_id):
+        return
+
+    current_timestamp = timestamp or _timestamp()
+    conn.execute(
+        """
+        INSERT INTO sessions (
+            client_id,
+            created_at,
+            last_activity_at,
+            analysis_count,
+            draft_count
+        ) VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(client_id) DO UPDATE SET
+            last_activity_at = excluded.last_activity_at,
+            analysis_count = sessions.analysis_count + excluded.analysis_count,
+            draft_count = sessions.draft_count + excluded.draft_count
+        """,
+        (
+            client_id,
+            current_timestamp,
+            current_timestamp,
+            analysis_delta,
+            draft_delta,
+        ),
+    )
+
+
+def _prune_session_rows(conn: sqlite3.Connection) -> int:
+    cutoff = _timestamp(datetime.now(UTC) - timedelta(days=_session_retention_days()))
+    rows = conn.execute(
+        """
+        SELECT client_id
+        FROM sessions
+        WHERE client_id LIKE 'session:%'
+        ORDER BY last_activity_at DESC, created_at DESC
+        """,
+    ).fetchall()
+    session_ids = [str(row["client_id"]) for row in rows]
+    protected = set(session_ids[:_session_retention_limit()])
+    expired = [
+        session_id
+        for row in rows
+        for session_id in [str(row["client_id"])]
+        if session_id not in protected or str(row["last_activity_at"]) < cutoff
+    ]
+
+    if not expired:
+        return 0
+
+    conn.executemany("DELETE FROM analyses WHERE client_id = ?", ((session_id,) for session_id in expired))
+    conn.executemany("DELETE FROM drafts WHERE client_id = ?", ((session_id,) for session_id in expired))
+    conn.executemany("DELETE FROM sessions WHERE client_id = ?", ((session_id,) for session_id in expired))
+    return len(expired)
+
+
+def prune_history_store() -> int:
+    with _connect() as conn:
+        deleted = _prune_session_rows(conn)
+        conn.commit()
+        return deleted
+
+
+def delete_session_data(client_id: str) -> dict[str, int]:
+    if not _is_anonymous_session(client_id):
+        raise ValueError("Only anonymous sessions can be cleared")
+
+    with _connect() as conn:
+        analyses_deleted = conn.execute(
+            "DELETE FROM analyses WHERE client_id = ?",
+            (client_id,),
+        ).rowcount
+        drafts_deleted = conn.execute(
+            "DELETE FROM drafts WHERE client_id = ?",
+            (client_id,),
+        ).rowcount
+        sessions_deleted = conn.execute(
+            "DELETE FROM sessions WHERE client_id = ?",
+            (client_id,),
+        ).rowcount
+        conn.commit()
+
+    return {
+        "analyses_deleted": int(analyses_deleted or 0),
+        "drafts_deleted": int(drafts_deleted or 0),
+        "sessions_deleted": int(sessions_deleted or 0),
+    }
 
 
 def _top_suggestion(result: AnalyzeResponse) -> str:
@@ -160,6 +288,7 @@ def save_analysis(
                     timestamp,
                 ),
             )
+        _touch_session(conn, client_id, analysis_delta=1, timestamp=timestamp)
         cursor = conn.execute(
             """
             INSERT INTO analyses (
@@ -196,6 +325,7 @@ def save_analysis(
                 response_json,
             ),
         )
+        _prune_session_rows(conn)
         conn.commit()
         record_id = int(cursor.lastrowid)
 
@@ -203,7 +333,7 @@ def save_analysis(
         id=record_id,
         created_at=timestamp,
         platform=payload.platform,
-        content_type=payload.content_type,
+        content_type=display_content_type_label(payload.content_type),
         niche=payload.niche,
         duration_seconds=payload.duration_seconds,
         overall_score=result.overall_score,
@@ -235,7 +365,7 @@ def list_recent_analyses(client_id: str, limit: int = 5) -> list[AnalysisHistory
             id=int(row["id"]),
             created_at=str(row["created_at"]),
             platform=str(row["platform"]),
-            content_type=str(row["content_type"]),
+            content_type=display_content_type_label(str(row["content_type"])),
             niche=str(row["niche"]),
             duration_seconds=int(row["duration_seconds"]),
             overall_score=int(row["overall_score"]),
@@ -250,7 +380,7 @@ def list_recent_analyses(client_id: str, limit: int = 5) -> list[AnalysisHistory
 
 
 def _draft_title(payload: AnalyzeRequest) -> str:
-    return f"{payload.platform} · {payload.content_type}"
+    return f"{payload.platform} · {display_content_type_label(payload.content_type)}"
 
 
 def save_draft(
@@ -291,6 +421,7 @@ def save_draft(
                     timestamp,
                 ),
             )
+        _touch_session(conn, client_id, draft_delta=1, timestamp=timestamp)
         cursor = conn.execute(
             """
             INSERT INTO drafts (
@@ -307,6 +438,7 @@ def save_draft(
                 request_json,
             ),
         )
+        _prune_session_rows(conn)
         conn.commit()
         record_id = int(cursor.lastrowid)
 
