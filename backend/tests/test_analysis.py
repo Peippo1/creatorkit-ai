@@ -108,6 +108,7 @@ class AnalysisHeuristicsTests(unittest.TestCase):
         self.assertEqual(len(rewritten), 3)
         self.assertTrue(any("sharper post" in item.lower() for item in rewritten))
         self.assertTrue(any("people working in creator education" in item.lower() for item in rewritten))
+        self.assertTrue(any("LinkedIn" in item for item in rewritten))
         self.assertTrue(all("If you're" not in item for item in rewritten))
         self.assertTrue(all("should avoid" not in item.lower() for item in rewritten))
 
@@ -120,8 +121,32 @@ class AnalysisHeuristicsTests(unittest.TestCase):
 
         self.assertEqual(len(rewritten), 3)
         self.assertTrue(any(item.startswith("Why these 3 mistakes") for item in rewritten))
-        self.assertTrue(any(item.startswith("Try this instead: lead with these 3 mistakes") for item in rewritten))
+        self.assertTrue(any(item.startswith("Try this instead:") for item in rewritten))
         self.assertTrue(all("If you're" not in item for item in rewritten))
+
+    def test_rewrite_hook_is_platform_specific_for_short_form(self) -> None:
+        rewritten = rewrite_hook(
+            "Most creators miss this one edit before publishing.",
+            platform="TikTok",
+            niche="creator education",
+        )
+
+        self.assertEqual(len(rewritten), 3)
+        self.assertTrue(any("Stop the scroll" in item for item in rewritten))
+        self.assertTrue(any("TikTok" in item for item in rewritten))
+        self.assertTrue(all("LinkedIn" not in item for item in rewritten))
+
+    def test_rewrite_hook_is_platform_specific_for_shorts(self) -> None:
+        rewritten = rewrite_hook(
+            "Here is the edit that makes viewers stay.",
+            platform="YouTube Shorts",
+            niche="marketing",
+        )
+
+        self.assertEqual(len(rewritten), 3)
+        self.assertTrue(any("Shorts opener" in item or "Hook viewers fast" in item for item in rewritten))
+        self.assertTrue(any("YouTube Shorts" in item for item in rewritten))
+        self.assertTrue(all("Stop the scroll" not in item for item in rewritten))
 
 
 if __name__ == "__main__":

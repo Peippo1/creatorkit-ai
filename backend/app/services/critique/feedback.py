@@ -169,6 +169,146 @@ def _count_focus(count: str, rest: str) -> str:
     return f"these {count} {noun}"
 
 
+def _rewrite_templates(
+    platform_name: str,
+    topic_clause: str,
+    platform_label: str,
+    focus_phrase: str,
+    count_focus: str | None = None,
+) -> list[str]:
+    if count_focus is not None:
+        if platform_name == "tiktok":
+            return [
+                f"Stop the scroll with {count_focus} {topic_clause}",
+                f"Try this instead: lead with {count_focus}",
+                f"A stronger TikTok hook {topic_clause}: {count_focus}",
+            ]
+
+        if platform_name == "instagram reels":
+            return [
+                f"Make the first second count with {count_focus} {topic_clause}",
+                f"Try this instead: open with {count_focus}",
+                f"A stronger Reels hook {topic_clause}: {count_focus}",
+            ]
+
+        if platform_name == "youtube shorts":
+            return [
+                f"Hook viewers fast with {count_focus} {topic_clause}",
+                f"Try this instead: lead with {count_focus}",
+                f"A stronger YouTube Shorts opener {topic_clause}: {count_focus}",
+            ]
+
+        if platform_name == "linkedin":
+            return [
+                f"Why {count_focus} work on LinkedIn {topic_clause}",
+                f"Try this instead: open with {count_focus}",
+                f"A stronger LinkedIn angle {topic_clause}: {count_focus}",
+            ]
+
+        if platform_name == "x":
+            return [
+                f"Make the first line earn the click with {count_focus} {topic_clause}",
+                f"Try this instead: lead with {count_focus}",
+                f"A stronger X post {topic_clause}: {count_focus}",
+            ]
+
+        if platform_name == "threads":
+            return [
+                f"Keep it conversational with {count_focus} {topic_clause}",
+                f"Try this instead: open with {count_focus}",
+                f"A stronger Threads post {topic_clause}: {count_focus}",
+            ]
+
+        if platform_name == "youtube":
+            return [
+                f"Why {count_focus} keep viewers watching {topic_clause}",
+                f"Try this instead: open with {count_focus}",
+                f"A stronger long-form angle {topic_clause}: make the payoff clear",
+            ]
+
+        if platform_name in SHORT_FORM_PLATFORMS:
+            return [
+                f"Stop the scroll with {count_focus} {topic_clause}",
+                f"Try this instead: lead with {count_focus}",
+                f"A stronger angle {topic_clause}: {count_focus}",
+            ]
+
+        if platform_name in LONG_FORM_PLATFORMS:
+            return [
+                f"Why {count_focus} keep viewers watching {topic_clause}",
+                f"Try this instead: open with {count_focus}",
+                f"A stronger angle {topic_clause}: make the payoff clear",
+            ]
+
+        if platform_name in TEXT_FIRST_PLATFORMS:
+            return [
+                f"Why {count_focus} work on {platform_label} {topic_clause}",
+                f"Try this instead: lead with {count_focus}",
+                f"A stronger angle {topic_clause}: keep it crisp and direct",
+            ]
+
+        return [
+            f"Why {count_focus} matter {topic_clause}",
+            f"Try this instead: lead with {count_focus}",
+            f"A stronger angle {topic_clause}: {count_focus}",
+        ]
+
+    if platform_name == "tiktok":
+        return [
+            f"Stop the scroll with {focus_phrase} {topic_clause}",
+            f"Try this instead: {focus_phrase}",
+            f"A stronger TikTok hook {topic_clause}: {focus_phrase}",
+        ]
+
+    if platform_name == "instagram reels":
+        return [
+            f"Make the first second count with {focus_phrase} {topic_clause}",
+            f"Try this instead: open with {focus_phrase}",
+            f"A stronger Reels hook {topic_clause}: {focus_phrase}",
+        ]
+
+    if platform_name == "youtube shorts":
+        return [
+            f"Hook viewers fast with {focus_phrase} {topic_clause}",
+            f"Try this instead: lead with {focus_phrase}",
+            f"A stronger YouTube Shorts opener {topic_clause}: {focus_phrase}",
+        ]
+
+    if platform_name == "linkedin":
+        return [
+            f"Why {focus_phrase} works on LinkedIn {topic_clause}",
+            f"Try this instead: open with {focus_phrase}",
+            f"A stronger LinkedIn angle {topic_clause}: {focus_phrase}",
+        ]
+
+    if platform_name == "x":
+        return [
+            f"Make the first line earn the click with {focus_phrase} {topic_clause}",
+            f"Try this instead: lead with {focus_phrase}",
+            f"A stronger X post {topic_clause}: {focus_phrase}",
+        ]
+
+    if platform_name == "threads":
+        return [
+            f"Keep it conversational with {focus_phrase} {topic_clause}",
+            f"Try this instead: open with {focus_phrase}",
+            f"A stronger Threads post {topic_clause}: {focus_phrase}",
+        ]
+
+    if platform_name == "youtube":
+        return [
+            f"Why {focus_phrase} keeps viewers watching {topic_clause}",
+            f"Try this instead: open with {focus_phrase}",
+            f"A stronger long-form angle {topic_clause}: keep the payoff clear",
+        ]
+
+    return [
+        f"Why {focus_phrase} works {topic_clause}",
+        f"Try this instead: lead with {focus_phrase}",
+        f"A stronger angle {topic_clause}: {focus_phrase}",
+    ]
+
+
 def rewrite_hook(hook: str, platform: str, niche: str) -> list[str]:
     platform_name = normalize_text(platform)
     niche_name = normalize_text(niche).strip()
@@ -185,35 +325,20 @@ def rewrite_hook(hook: str, platform: str, niche: str) -> list[str]:
         count = numeric_theme.group("count")
         rest = numeric_theme.group("rest")
         count_focus = _count_focus(count, rest)
-        rewritten = [
-            f"Why {count_focus} matter {topic_clause}",
-            f"Try this instead: lead with {count_focus}",
-            f"A stronger angle {topic_clause}: {count_focus}",
-        ]
-    elif platform_name in SHORT_FORM_PLATFORMS:
-        rewritten = [
-            f"Why {focus_phrase} works {topic_clause}",
-            f"Try this instead: lead with {focus_phrase}",
-            f"A stronger angle {topic_clause}: {focus_phrase}",
-        ]
-    elif platform_name in LONG_FORM_PLATFORMS:
-        rewritten = [
-            f"Why {focus_phrase} keeps viewers watching {topic_clause}",
-            f"Try this instead: lead with {focus_phrase}",
-            f"A stronger angle {topic_clause}: keep the promise clear",
-        ]
-    elif platform_name in TEXT_FIRST_PLATFORMS:
-        rewritten = [
-            f"Why {focus_phrase} works on {platform_label} {topic_clause}",
-            f"Try this instead: lead with {focus_phrase}",
-            f"A stronger angle {topic_clause}: keep it concise and direct",
-        ]
+        rewritten = _rewrite_templates(
+            platform_name=platform_name,
+            topic_clause=topic_clause,
+            platform_label=platform_label,
+            focus_phrase=count_focus,
+            count_focus=count_focus,
+        )
     else:
-        rewritten = [
-            f"Why {focus_phrase} works {topic_clause}",
-            f"Try this instead: lead with {focus_phrase}",
-            f"A stronger angle {topic_clause}: {focus_phrase}",
-        ]
+        rewritten = _rewrite_templates(
+            platform_name=platform_name,
+            topic_clause=topic_clause,
+            platform_label=platform_label,
+            focus_phrase=focus_phrase,
+        )
 
     rewritten = [_sentence_case(item.strip().rstrip(" .!?")) for item in rewritten]
     deduped: list[str] = []

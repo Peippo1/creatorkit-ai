@@ -258,24 +258,6 @@ export function ResultCard({
         </article>
       ) : null}
 
-      <section className="result-summary" aria-label="Analysis summary">
-        <div className="summary-stat">
-          <span className="summary-label">Strongest area</span>
-          <strong>{strongestMetric.label}</strong>
-          <p>
-            {strongestMetric.value}/100. {strongestMetric.label.toLowerCase()} is the clearest
-            signal in the current draft.
-          </p>
-        </div>
-        <div className="summary-stat summary-stat--weak">
-          <span className="summary-label">Weakest area</span>
-          <strong>{weakestMetric.label}</strong>
-          <p>
-            {weakestMetric.value}/100. This is the first place to spend editing time.
-          </p>
-        </div>
-      </section>
-
       <div className={`score-hero score-hero--${overallTone}`}>
         <div
           className={`score-badge score-badge--${overallTone}`}
@@ -297,7 +279,7 @@ export function ResultCard({
 
       <section className="result-next-step" aria-label="Next step">
         <div className="result-next-step__copy">
-          <span className="panel-label">Primary coaching moment</span>
+          <span className="panel-label">Top Fix</span>
           <h4>{topFix.title}</h4>
           <p className="result-next-step__lede">{fixLeadForArea(topFix.area)}</p>
           <p>{topFix.why}</p>
@@ -327,11 +309,6 @@ export function ResultCard({
         </button>
         {!canRescore ? <p className="result-next-step__hint">Choose a rewritten hook or edit the opener to unlock this.</p> : null}
       </section>
-
-      <article className="coach-insight" aria-label="Coach insight">
-        <span className="panel-label">Coach Insight</span>
-        <p>{insight}</p>
-      </article>
 
       <section className="hook-rewrite-panel" aria-label="Improved hooks">
         <div className="hook-rewrite-panel__top">
@@ -384,89 +361,114 @@ export function ResultCard({
         </div>
       </section>
 
-      <article className="result-callout" id="analysis-critique">
-        <div className="card-heading">
-          <span className="panel-label">Backend readout</span>
-          <h4>What the model is telling you</h4>
-        </div>
-        <p>{result.critique}</p>
-        <div className="callout-quote">
-          <span className="panel-label">Primary fix</span>
-          <strong>{suggestions.lead}</strong>
-        </div>
-      </article>
+      <div className="result-secondary">
+        <article className="coach-insight" aria-label="Coach insight">
+          <span className="panel-label">Coach Insight</span>
+          <p>{insight}</p>
+        </article>
 
-      <div className="mini-score-grid">
-        {metrics.map((metric) => {
-          const tone = scoreTone(metric.value)
-          return (
-            <article className="mini-score" data-tone={tone} key={metric.label}>
-              <div className="mini-score-top">
-                <span>{metric.label}</span>
-                <strong>{metric.value}/100</strong>
-              </div>
-              <div className="mini-score-bar" aria-hidden="true">
-                <span style={{ width: `${metric.value}%` }} />
-              </div>
-            </article>
-          )
-        })}
-      </div>
-
-      <div className="feedback-grid">
-        <article className="feedback-card feedback-card--strengths">
-          <div className="card-heading">
-            <span className="panel-label">Strengths</span>
-            <h4>What is working</h4>
+        <section className="result-summary" aria-label="Analysis summary">
+          <div className="summary-stat">
+            <span className="summary-label">Strongest area</span>
+            <strong>{strongestMetric.label}</strong>
+            <p>
+              {strongestMetric.value}/100. {strongestMetric.label.toLowerCase()} is the clearest
+              signal in the current draft.
+            </p>
           </div>
-          <p className="feedback-lead">{strengths.lead}</p>
-          {strengths.remainder.length > 0 ? (
+          <div className="summary-stat summary-stat--weak">
+            <span className="summary-label">Weakest area</span>
+            <strong>{weakestMetric.label}</strong>
+            <p>
+              {weakestMetric.value}/100. This is the first place to spend editing time.
+            </p>
+          </div>
+        </section>
+
+        <article className="result-callout" id="analysis-critique">
+          <div className="card-heading">
+            <span className="panel-label">Backend readout</span>
+            <h4>What the model is telling you</h4>
+          </div>
+          <p>{result.critique}</p>
+          <div className="callout-quote">
+            <span className="panel-label">Primary fix</span>
+            <strong>{suggestions.lead}</strong>
+          </div>
+        </article>
+
+        <div className="mini-score-grid">
+          {metrics.map((metric) => {
+            const tone = scoreTone(metric.value)
+            return (
+              <article className="mini-score" data-tone={tone} key={metric.label}>
+                <div className="mini-score-top">
+                  <span>{metric.label}</span>
+                  <strong>{metric.value}/100</strong>
+                </div>
+                <div className="mini-score-bar" aria-hidden="true">
+                  <span style={{ width: `${metric.value}%` }} />
+                </div>
+              </article>
+            )
+          })}
+        </div>
+
+        <div className="feedback-grid">
+          <article className="feedback-card feedback-card--strengths">
+            <div className="card-heading">
+              <span className="panel-label">Strengths</span>
+              <h4>What is working</h4>
+            </div>
+            <p className="feedback-lead">{strengths.lead}</p>
+            {strengths.remainder.length > 0 ? (
+              <ul className="feedback-list">
+                {strengths.remainder.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+          </article>
+
+          <article className="feedback-card feedback-card--risks">
+            <div className="card-heading">
+              <span className="panel-label">Risks</span>
+              <h4>What may hold it back</h4>
+            </div>
+            <p className="feedback-lead feedback-lead--warning">{risks.lead}</p>
+            {risks.remainder.length > 0 ? (
+              <ul className="feedback-list">
+                {risks.remainder.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+          </article>
+        </div>
+
+        <article className="critique-card">
+          <div className="card-heading">
+            <span className="panel-label">Critique</span>
+            <h4>Plain-language feedback</h4>
+          </div>
+          <p>{result.critique}</p>
+        </article>
+
+        <article className="suggestions-card" id="analysis-suggestions">
+          <div className="card-heading">
+            <span className="panel-label">Suggestions</span>
+            <h4>Edits to try next</h4>
+          </div>
+          <p className="feedback-lead">{suggestions.lead}</p>
+          {suggestions.remainder.length > 0 ? (
             <ul className="feedback-list">
-              {strengths.remainder.map((item) => (
+              {suggestions.remainder.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
           ) : null}
         </article>
-
-        <article className="feedback-card feedback-card--risks">
-          <div className="card-heading">
-            <span className="panel-label">Risks</span>
-            <h4>What may hold it back</h4>
-          </div>
-          <p className="feedback-lead feedback-lead--warning">{risks.lead}</p>
-          {risks.remainder.length > 0 ? (
-            <ul className="feedback-list">
-              {risks.remainder.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          ) : null}
-        </article>
       </div>
-
-      <article className="critique-card">
-        <div className="card-heading">
-          <span className="panel-label">Critique</span>
-          <h4>Plain-language feedback</h4>
-        </div>
-        <p>{result.critique}</p>
-      </article>
-
-      <article className="suggestions-card" id="analysis-suggestions">
-        <div className="card-heading">
-          <span className="panel-label">Suggestions</span>
-          <h4>Edits to try next</h4>
-        </div>
-        <p className="feedback-lead">{suggestions.lead}</p>
-        {suggestions.remainder.length > 0 ? (
-          <ul className="feedback-list">
-            {suggestions.remainder.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        ) : null}
-      </article>
     </aside>
   )
 }
