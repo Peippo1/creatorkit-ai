@@ -15,6 +15,7 @@ type TopFix = {
   title: string
   why: string
   nextStep: string
+  impact: string
 }
 
 function scoreTone(score: number): Tone {
@@ -61,6 +62,7 @@ function fixForResult(result: AnalyzeResponse): TopFix {
       title: "Give the ending a clear direction",
       why: "When people know what to do next, they are more likely to keep moving.",
       nextStep: "Try ending with one simple action, such as save, comment, or click.",
+      impact: "This can improve conversion and make the draft feel more complete.",
     }
   }
 
@@ -69,6 +71,7 @@ function fixForResult(result: AnalyzeResponse): TopFix {
       title: "Strengthen the opening",
       why: "The first line decides whether people keep watching or scroll away.",
       nextStep: "Try starting with a surprising claim, a problem, or a clear promise.",
+      impact: "A stronger opening can lift retention and give the rest of the draft a better chance.",
     }
   }
 
@@ -77,6 +80,7 @@ function fixForResult(result: AnalyzeResponse): TopFix {
       title: "Make the main idea easier to follow",
       why: "People stay longer when they can understand the point quickly.",
       nextStep: "Try trimming extra words and leading with the main takeaway.",
+      impact: "Clearer framing can reduce drop-off and make the message easier to trust.",
     }
   }
 
@@ -84,6 +88,7 @@ function fixForResult(result: AnalyzeResponse): TopFix {
     title: "Make it feel native to the platform",
     why: "When the framing matches the feed, the draft feels easier to trust and consume.",
     nextStep: "Try using the style that performs best on this platform, then re-score it.",
+    impact: "Platform-fit improvements can make the content feel more natural and easier to engage with.",
   }
 }
 
@@ -202,11 +207,12 @@ export function ResultCard({
           <span className={`score-pill score-pill--${overallTone}`}>{scoreLabel(result.overall_score)}</span>
           {scoreDelta ? (
             <div className={`score-comparison score-comparison--${scoreDelta.tone}`}>
-              <span>Previous score</span>
-              <strong>{previousResult?.overall_score}/100</strong>
-              <span>Current score</span>
-              <strong>{result.overall_score}/100</strong>
-              <strong>{scoreDelta.text}</strong>
+              <span>Previous</span>
+              <strong>{previousResult?.overall_score}</strong>
+              <span>Current</span>
+              <strong>{result.overall_score}</strong>
+              <span>Delta</span>
+              <strong className="score-comparison__delta">{scoreDelta.text}</strong>
             </div>
           ) : null}
         </div>
@@ -274,6 +280,10 @@ export function ResultCard({
           <span className="panel-label">Top Fix</span>
           <h4>{topFix.title}</h4>
           <p>{topFix.why}</p>
+          <div className="result-next-step__impact">
+            <span>Expected impact</span>
+            <strong>{topFix.impact}</strong>
+          </div>
           <dl className="result-next-step__details">
             <div>
               <dt>Why this matters</dt>
@@ -311,6 +321,7 @@ export function ResultCard({
             <div>
               <span className="panel-label">Applied hook</span>
               <strong>{selectedHook}</strong>
+              <p>Use this version in the form above, then re-score when you’re ready.</p>
             </div>
             <button className="button" type="button" onClick={onRescore}>
               Re-score this draft
@@ -342,7 +353,7 @@ export function ResultCard({
                   Use this hook
                 </button>
               </div>
-              <p>{hook}</p>
+              <p className="hook-rewrite-card__text">{hook}</p>
             </article>
           ))}
         </div>

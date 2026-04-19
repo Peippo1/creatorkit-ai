@@ -1115,13 +1115,15 @@ a.button {
 
 .score-comparison {
   display: grid;
-  gap: 3px;
-  min-width: 132px;
-  padding: 10px 12px;
+  grid-template-columns: auto auto;
+  gap: 4px 12px;
+  min-width: 180px;
+  padding: 12px 14px;
   border-radius: 16px;
   border: 1px solid rgba(23, 19, 18, 0.08);
   background: rgba(255, 255, 255, 0.82);
-  text-align: right;
+  text-align: left;
+  align-items: baseline;
 }
 
 .score-comparison span {
@@ -1133,8 +1135,12 @@ a.button {
 }
 
 .score-comparison strong {
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   letter-spacing: -0.02em;
+}
+
+.score-comparison__delta {
+  color: var(--success);
 }
 
 .score-comparison--up {
@@ -1309,6 +1315,28 @@ a.button {
   gap: 10px;
 }
 
+.result-next-step__impact {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 157, 88, 0.16);
+  background: rgba(15, 157, 88, 0.06);
+}
+
+.result-next-step__impact span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.result-next-step__impact strong {
+  color: var(--text);
+  line-height: 1.55;
+}
+
 .result-next-step__copy h4 {
   margin: 0;
   font-size: 1.18rem;
@@ -1374,6 +1402,10 @@ a.button {
   padding: 18px;
   display: grid;
   gap: 10px;
+}
+
+.result-callout h4 {
+  margin: 0;
 }
 
 .result-focus {
@@ -1452,6 +1484,13 @@ a.button {
   margin-top: 6px;
   color: var(--text);
   line-height: 1.55;
+  max-width: 52ch;
+}
+
+.hook-applied-banner p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
 }
 
 .hook-rewrite-grid {
@@ -1514,6 +1553,10 @@ a.button {
   margin: 0;
   font-size: 1rem;
   line-height: 1.55;
+}
+
+.hook-rewrite-card__text {
+  max-width: 56ch;
 }
 
 .hook-rewrite-empty {
@@ -2013,6 +2056,12 @@ a.button {
     padding: 16px;
   }
 
+  .score-comparison {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .hero-panel {
     padding: 18px;
     gap: 12px;
@@ -2027,6 +2076,10 @@ a.button {
   }
 
   .result-focus {
+    grid-template-columns: 1fr;
+  }
+
+  .result-next-step {
     grid-template-columns: 1fr;
   }
 
@@ -2061,6 +2114,10 @@ a.button {
     grid-template-columns: 1fr;
   }
 
+  .result-next-step__impact {
+    padding: 12px 14px;
+  }
+
   .hook-rewrite-card__top {
     flex-direction: column;
     align-items: flex-start;
@@ -2073,6 +2130,14 @@ a.button {
 
   .hook-applied-banner .button {
     width: 100%;
+  }
+
+  .hook-rewrite-card__labels {
+    gap: 6px;
+  }
+
+  .hook-rewrite-card__text {
+    font-size: 0.98rem;
   }
 
   .hero-points {
