@@ -57,8 +57,8 @@ export function AnalysisForm({
     <form className="panel form" onSubmit={onSubmit}>
       <div className="form-intro">
         <span className="panel-label">Input</span>
-        <h3>Upload your video or start with a script</h3>
-        <p>Upload a clip, or begin with a script and tighten it before analysing.</p>
+        <h3>Upload a video or start with a script</h3>
+        <p>Begin with a clip, or draft the script first and refine it before analysing.</p>
       </div>
 
       <UploadCard
@@ -75,7 +75,7 @@ export function AnalysisForm({
       <div className="script-toolbar">
         <div>
           <span className="panel-label">Script start</span>
-          <p>Generate a quick draft from your platform, format, and niche.</p>
+          <p>Generate a quick first draft from your platform, format, and niche.</p>
         </div>
         <button
           className="button button--ghost"

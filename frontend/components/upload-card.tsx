@@ -110,10 +110,10 @@ export function UploadCard({
         <div className="upload-card__top">
           <div>
             <span className="panel-label">Video upload</span>
-            <h3>{videoFile ? "Video added" : "Upload your video"}</h3>
+            <h3>{videoFile ? "Video added" : "Drop a video or tap to browse"}</h3>
           </div>
           <span className="upload-card__status">
-            {videoFile ? "Uploaded" : isDragOver ? "Drop to add" : "Idle"}
+            {videoFile ? "Added" : isDragOver ? "Drop now" : "Ready"}
           </span>
         </div>
 
@@ -139,7 +139,7 @@ export function UploadCard({
               openPicker()
             }}
           >
-            Choose video
+            Browse files
           </button>
           {videoFile ? (
             <button
@@ -162,7 +162,9 @@ export function UploadCard({
         </div>
       ) : null}
 
-      {!videoFile ? <p className="upload-card__hint">Mobile users can use the file picker only.</p> : null}
+      {!videoFile ? (
+        <p className="upload-card__hint">Mobile users can tap to browse. Files stay in your browser.</p>
+      ) : null}
     </section>
   )
 }
