@@ -45,11 +45,15 @@ function chooseSelectedDraftId(
   return drafts[0]?.id ?? null
 }
 
+function hasSessionId(value: string | null): value is string {
+  return typeof value === "string" && value.startsWith("session:")
+}
+
 export function AnalysisWorkspace() {
   const [form, setForm] = useState<AnalyzeRequest>(DEFAULT_FORM)
   const [result, setResult] = useState<AnalyzeResponse | null>(null)
   const [previousResult, setPreviousResult] = useState<AnalyzeResponse | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [analysisError, setAnalysisError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [clientId, setClientId] = useState<string | null>(null)
@@ -66,7 +70,7 @@ export function AnalysisWorkspace() {
   }, [])
 
   useEffect(() => {
-    if (!clientId) {
+    if (!hasSessionId(clientId)) {
       return
     }
 
@@ -122,6 +126,13 @@ export function AnalysisWorkspace() {
   }, [clientId])
 
   async function refreshHistory(nextClientId: string) {
+    if (!hasSessionId(nextClientId)) {
+      console.warn("[AnalysisWorkspace] skipped history refresh without a valid session id", {
+        clientId: nextClientId,
+      })
+      return
+    }
+
     try {
       const response = await listAnalysisHistory(nextClientId)
       setHistoryEntries(response.entries)
@@ -134,6 +145,13 @@ export function AnalysisWorkspace() {
   }
 
   async function refreshDrafts(nextClientId: string, preferredDraftId: number | null = null) {
+    if (!hasSessionId(nextClientId)) {
+      console.warn("[AnalysisWorkspace] skipped drafts refresh without a valid session id", {
+        clientId: nextClientId,
+      })
+      return
+    }
+
     try {
       const response = await listSavedDrafts(nextClientId)
       setDraftEntries(response.entries)
@@ -161,8 +179,18 @@ export function AnalysisWorkspace() {
       setClientId(nextSessionId)
     }
 
+    if (!hasSessionId(nextSessionId)) {
+      const message = "Unable to analyze draft: missing session identifier"
+      setAnalysisError(message)
+      console.warn("[AnalysisWorkspace] skipped analysis without a valid session id", {
+        clientId: nextSessionId,
+        draft: nextDraft,
+      })
+      return
+    }
+
     setIsSubmitting(true)
-    setError(null)
+    setAnalysisError(null)
     if (result) {
       setPreviousResult(result)
     }
@@ -172,7 +200,14 @@ export function AnalysisWorkspace() {
       setResult(analysis)
       await refreshHistory(nextSessionId)
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to analyze draft")
+      const message =
+        submitError instanceof Error ? submitError.message : "Unable to analyze draft"
+      setAnalysisError(message)
+      console.error("[AnalysisWorkspace] analyze draft failed", {
+        message,
+        clientId: nextSessionId,
+        draft: nextDraft,
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -191,6 +226,9 @@ export function AnalysisWorkspace() {
       const nextSessionId = clientId ?? getAnalysisSessionId()
       if (!clientId) {
         setClientId(nextSessionId)
+      }
+      if (!hasSessionId(nextSessionId)) {
+        throw new Error("Unable to save draft: missing session identifier")
       }
       const saved = await saveDraft(form, nextSessionId)
       await refreshDrafts(nextSessionId, saved.entry.id)
@@ -228,11 +266,14 @@ export function AnalysisWorkspace() {
       />
 
       <div className="result-stack">
-        {error ? (
+        {analysisError ? (
           <aside className="panel error-panel" role="alert">
-            <h2>Backend error</h2>
-            <p>{error}</p>
-            <p className="muted">Check the API connection and try again.</p>
+            <h2>Analysis failed</h2>
+            <p>{analysisError}</p>
+            <p className="muted">
+              History and saved drafts load separately, so a secondary fetch will not clear a
+              successful result.
+            </p>
           </aside>
         ) : null}
 
