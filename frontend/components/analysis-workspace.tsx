@@ -54,6 +54,7 @@ export function AnalysisWorkspace() {
   const [form, setForm] = useState<AnalyzeRequest>(DEFAULT_FORM)
   const [result, setResult] = useState<AnalyzeResponse | null>(null)
   const [previousResult, setPreviousResult] = useState<AnalyzeResponse | null>(null)
+  const [analyzedHook, setAnalyzedHook] = useState<string | null>(null)
   const [appliedHook, setAppliedHook] = useState<string | null>(null)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -204,6 +205,7 @@ export function AnalysisWorkspace() {
     try {
       const analysis = await analyzeContent(nextDraft, nextSessionId)
       setResult(analysis)
+      setAnalyzedHook(nextDraft.hook)
       await refreshHistory(nextSessionId)
     } catch (submitError) {
       const message =
@@ -261,6 +263,7 @@ export function AnalysisWorkspace() {
       setClientId(rotatedSessionId)
       setResult(null)
       setPreviousResult(null)
+      setAnalyzedHook(null)
       setAppliedHook(null)
       setAnalysisError(null)
       setHistoryError(null)
@@ -289,6 +292,9 @@ export function AnalysisWorkspace() {
     setAppliedHook(hook)
   }
 
+  const canRescoreDraft =
+    Boolean(result && analyzedHook && form.hook.trim() !== analyzedHook.trim())
+
   return (
     <div className="workspace-grid">
       <AnalysisForm
@@ -316,6 +322,7 @@ export function AnalysisWorkspace() {
           result={result}
           previousResult={previousResult}
           selectedHook={appliedHook}
+          canRescore={canRescoreDraft}
           isSubmitting={isSubmitting}
           onRescore={handleApplyFixAndRescore}
           onUseHook={handleUseHook}

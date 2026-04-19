@@ -4,6 +4,7 @@ type ResultCardProps = {
   result: AnalyzeResponse | null
   previousResult: AnalyzeResponse | null
   selectedHook: string | null
+  canRescore: boolean
   isSubmitting: boolean
   onRescore: () => void
   onUseHook: (hook: string) => void
@@ -162,6 +163,7 @@ export function ResultCard({
   result,
   previousResult,
   selectedHook,
+  canRescore,
   isSubmitting,
   onRescore,
   onUseHook,
@@ -214,6 +216,8 @@ export function ResultCard({
   const scoreDelta =
     previousResult !== null ? deltaLabel(previousResult.overall_score, result.overall_score) : null
   const hookLabels = ["Curiosity-led", "Direct", "Authority"]
+  const rescoreDisabled = !canRescore
+  const rescoreButtonClass = canRescore ? "button" : "button button--ghost"
 
   return (
     <aside className="panel result-card">
@@ -310,9 +314,16 @@ export function ResultCard({
             </div>
           </dl>
         </div>
-        <button className="button button--ghost" type="button" onClick={onRescore}>
+        <button
+          className={rescoreButtonClass}
+          type="button"
+          onClick={onRescore}
+          disabled={rescoreDisabled}
+          aria-disabled={rescoreDisabled}
+        >
           Re-score this draft
         </button>
+        {!canRescore ? <p className="result-next-step__hint">Choose a rewritten hook or edit the opener to unlock this.</p> : null}
       </section>
 
       <article className="coach-insight" aria-label="Coach insight">
@@ -334,13 +345,10 @@ export function ResultCard({
         {selectedHook ? (
           <div className="hook-applied-banner" aria-live="polite">
             <div>
-              <span className="panel-label">Applied hook</span>
+              <span className="panel-label">Hook applied ✓</span>
               <strong>{selectedHook}</strong>
-              <p>Use this version in the form above, then re-score when you’re ready.</p>
+              <p>This hook is now in the form above. Re-score when you’re ready.</p>
             </div>
-            <button className="button" type="button" onClick={onRescore}>
-              Re-score this draft
-            </button>
           </div>
         ) : null}
 

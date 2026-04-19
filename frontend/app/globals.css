@@ -1393,6 +1393,17 @@ a.button {
   box-shadow: 0 16px 32px rgba(31, 94, 255, 0.2);
 }
 
+.result-next-step .button:disabled {
+  box-shadow: none;
+}
+
+.result-next-step__hint {
+  margin: -6px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 .coach-insight {
   display: grid;
   gap: 8px;
@@ -1592,6 +1603,12 @@ a.button {
 .button--ghost:focus-visible {
   outline: 2px solid rgba(31, 94, 255, 0.3);
   outline-offset: 2px;
+}
+
+.button--ghost:disabled {
+  background: rgba(255, 255, 255, 0.68);
+  border-color: rgba(31, 94, 255, 0.12);
+  color: var(--muted);
 }
 
 .button--tiny {
