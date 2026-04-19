@@ -23,6 +23,9 @@ import { AnalysisHistory } from "./analysis-history"
 import { DraftComparison } from "./draft-comparison"
 import { ResultCard } from "./result-card"
 
+const AUTO_RESCORE_ENABLED = true
+const AUTO_RESCORE_DELAY_MS = 400
+
 const DEFAULT_FORM: AnalyzeRequest = {
   platform: "TikTok",
   content_type: "short_video",
@@ -68,6 +71,8 @@ export function AnalysisWorkspace() {
   const [isDraftsLoading, setIsDraftsLoading] = useState(true)
   const [draftsError, setDraftsError] = useState<string | null>(null)
   const [selectedDraftId, setSelectedDraftId] = useState<number | null>(null)
+  const [pendingAutoRescoreHook, setPendingAutoRescoreHook] = useState<string | null>(null)
+  const [autoRescoreNote, setAutoRescoreNote] = useState<string | null>(null)
 
   useEffect(() => {
     setClientId(getAnalysisSessionId())
@@ -178,6 +183,8 @@ export function AnalysisWorkspace() {
     if (field === "hook") {
       setAppliedHook((current) => (current === nextValue ? current : null))
     }
+    setPendingAutoRescoreHook((current) => (current && field === "hook" && current === nextValue ? current : null))
+    setAutoRescoreNote(null)
   }
 
   async function runAnalysis(nextDraft: AnalyzeRequest) {
@@ -206,6 +213,8 @@ export function AnalysisWorkspace() {
       const analysis = await analyzeContent(nextDraft, nextSessionId)
       setResult(analysis)
       setAnalyzedHook(nextDraft.hook)
+      setPendingAutoRescoreHook(null)
+      setAutoRescoreNote(null)
       await refreshHistory(nextSessionId)
     } catch (submitError) {
       const message =
@@ -290,10 +299,34 @@ export function AnalysisWorkspace() {
       hook,
     }))
     setAppliedHook(hook)
+    if (AUTO_RESCORE_ENABLED) {
+      setPendingAutoRescoreHook(hook)
+      setAutoRescoreNote("Preparing an automatic re-score...")
+    }
   }
 
   const canRescoreDraft =
     Boolean(result && analyzedHook && form.hook.trim() !== analyzedHook.trim())
+
+  useEffect(() => {
+    if (!AUTO_RESCORE_ENABLED || !pendingAutoRescoreHook || isSubmitting) {
+      return
+    }
+
+    if (form.hook.trim() !== pendingAutoRescoreHook.trim()) {
+      setPendingAutoRescoreHook(null)
+      setAutoRescoreNote(null)
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      void runAnalysis(form)
+    }, AUTO_RESCORE_DELAY_MS)
+
+    return () => {
+      window.clearTimeout(timeout)
+    }
+  }, [form, isSubmitting, pendingAutoRescoreHook])
 
   return (
     <div className="workspace-grid">
@@ -323,6 +356,8 @@ export function AnalysisWorkspace() {
           previousResult={previousResult}
           selectedHook={appliedHook}
           canRescore={canRescoreDraft}
+          isAutoRescoring={Boolean(pendingAutoRescoreHook)}
+          autoRescoreNote={autoRescoreNote}
           isSubmitting={isSubmitting}
           onRescore={handleApplyFixAndRescore}
           onUseHook={handleUseHook}

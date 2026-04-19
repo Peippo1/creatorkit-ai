@@ -5,6 +5,8 @@ type ResultCardProps = {
   previousResult: AnalyzeResponse | null
   selectedHook: string | null
   canRescore: boolean
+  isAutoRescoring: boolean
+  autoRescoreNote: string | null
   isSubmitting: boolean
   onRescore: () => void
   onUseHook: (hook: string) => void
@@ -164,6 +166,8 @@ export function ResultCard({
   previousResult,
   selectedHook,
   canRescore,
+  isAutoRescoring,
+  autoRescoreNote,
   isSubmitting,
   onRescore,
   onUseHook,
@@ -276,6 +280,14 @@ export function ResultCard({
           </p>
         </div>
       </div>
+
+      {isAutoRescoring ? (
+        <div className="result-rescoring result-rescoring--auto" aria-live="polite">
+          <span className="panel-label">Auto re-score</span>
+          <strong>Re-scoring after your hook choice</strong>
+          <p>{autoRescoreNote ?? "Updating the score now."}</p>
+        </div>
+      ) : null}
 
       <section className="result-next-step" aria-label="Next step">
         <div className="result-next-step__copy">
