@@ -1,4 +1,6 @@
-import type { FormEvent } from "react"
+"use client"
+
+import type { DragEvent, ChangeEvent, FormEvent } from "react"
 
 import type { AnalyzeRequest } from "@/lib/types"
 
@@ -6,9 +8,12 @@ type AnalysisFormProps = {
   value: AnalyzeRequest
   isSubmitting: boolean
   isSavingDraft: boolean
+  videoFile: File | null
+  videoPreviewUrl: string | null
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
   onSaveDraft: () => void
   onFieldChange: <K extends keyof AnalyzeRequest>(field: K, nextValue: AnalyzeRequest[K]) => void
+  onVideoSelect: (file: File | null) => void
 }
 
 const PLATFORM_OPTIONS = [
@@ -31,21 +36,95 @@ const CONTENT_TYPE_OPTIONS = [
   { value: "long_form", label: "Long-form script" },
 ]
 
+function isSupportedVideoFile(file: File | null): file is File {
+  if (!file) {
+    return false
+  }
+
+  const loweredName = file.name.toLowerCase()
+  return file.type.startsWith("video/") || loweredName.endsWith(".mp4") || loweredName.endsWith(".mov")
+}
+
 export function AnalysisForm({
   value,
   isSubmitting,
   isSavingDraft,
+  videoFile,
+  videoPreviewUrl,
   onSubmit,
   onSaveDraft,
   onFieldChange,
+  onVideoSelect,
 }: AnalysisFormProps) {
+  function handleVideoInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null
+    onVideoSelect(isSupportedVideoFile(file) ? file : null)
+  }
+
+  function handleVideoDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    const file = event.dataTransfer.files?.[0] ?? null
+    onVideoSelect(isSupportedVideoFile(file) ? file : null)
+  }
+
+  function handleVideoDragOver(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+  }
+
   return (
     <form className="panel form" onSubmit={onSubmit}>
       <div className="form-intro">
         <span className="panel-label">Input</span>
-        <h3>Draft analysis</h3>
-        <p>Submit a draft or idea and get a quick pre-publish review.</p>
+        <h3>Upload your video or paste your script</h3>
+        <p>Analyze the hook, caption, and transcript while keeping video uploads local for now.</p>
       </div>
+
+      <section className="video-upload" aria-label="Video upload">
+        <input
+          id="video_upload"
+          className="sr-only"
+          type="file"
+          accept=".mp4,.mov,video/mp4,video/quicktime"
+          onChange={handleVideoInputChange}
+        />
+        <div
+          className={`video-upload__dropzone${videoFile ? " video-upload__dropzone--active" : ""}`}
+          onDrop={handleVideoDrop}
+          onDragOver={handleVideoDragOver}
+        >
+          <span className="panel-label">Video upload</span>
+          <strong>{videoFile ? "Video selected" : "Drag and drop a video here"}</strong>
+          <p>{videoFile ? videoFile.name : "MP4 or MOV files only. The file stays in your browser."}</p>
+          <div className="video-upload__actions">
+            <label className="button button--ghost button--tiny video-upload__button" htmlFor="video_upload">
+              Choose video
+            </label>
+            {videoFile ? (
+              <button
+                className="button button--ghost button--tiny"
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault()
+                  onVideoSelect(null)
+                }}
+              >
+                Remove
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {videoFile ? (
+          <div className="video-upload__preview" aria-live="polite">
+            {videoPreviewUrl ? (
+              <video controls muted playsInline src={videoPreviewUrl} />
+            ) : null}
+            <p className="video-upload__note">Add a transcript or description for best results.</p>
+          </div>
+        ) : (
+          <p className="video-upload__note">Upload your video, or keep working with a script-only draft.</p>
+        )}
+      </section>
 
       <div className="form-grid">
         <div className="field">

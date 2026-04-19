@@ -73,10 +73,26 @@ export function AnalysisWorkspace() {
   const [selectedDraftId, setSelectedDraftId] = useState<number | null>(null)
   const [pendingAutoRescoreHook, setPendingAutoRescoreHook] = useState<string | null>(null)
   const [autoRescoreNote, setAutoRescoreNote] = useState<string | null>(null)
+  const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null)
 
   useEffect(() => {
     setClientId(getAnalysisSessionId())
   }, [])
+
+  useEffect(() => {
+    if (!videoFile) {
+      setVideoPreviewUrl(null)
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(videoFile)
+    setVideoPreviewUrl(objectUrl)
+
+    return () => {
+      URL.revokeObjectURL(objectUrl)
+    }
+  }, [videoFile])
 
   useEffect(() => {
     if (!hasSessionId(clientId)) {
@@ -213,8 +229,6 @@ export function AnalysisWorkspace() {
       const analysis = await analyzeContent(nextDraft, nextSessionId)
       setResult(analysis)
       setAnalyzedHook(nextDraft.hook)
-      setPendingAutoRescoreHook(null)
-      setAutoRescoreNote(null)
       await refreshHistory(nextSessionId)
     } catch (submitError) {
       const message =
@@ -226,6 +240,8 @@ export function AnalysisWorkspace() {
         draft: nextDraft,
       })
     } finally {
+      setPendingAutoRescoreHook(null)
+      setAutoRescoreNote(null)
       setIsSubmitting(false)
     }
   }
@@ -274,6 +290,8 @@ export function AnalysisWorkspace() {
       setPreviousResult(null)
       setAnalyzedHook(null)
       setAppliedHook(null)
+      setVideoFile(null)
+      setVideoPreviewUrl(null)
       setAnalysisError(null)
       setHistoryError(null)
       setDraftsError(null)
@@ -303,6 +321,10 @@ export function AnalysisWorkspace() {
       setPendingAutoRescoreHook(hook)
       setAutoRescoreNote("Updating the score...")
     }
+  }
+
+  function handleVideoSelect(nextFile: File | null) {
+    setVideoFile(nextFile)
   }
 
   const canRescoreDraft =
@@ -337,6 +359,9 @@ export function AnalysisWorkspace() {
         onSubmit={handleSubmit}
         onSaveDraft={handleSaveDraft}
         onFieldChange={updateField}
+        videoFile={videoFile}
+        videoPreviewUrl={videoPreviewUrl}
+        onVideoSelect={handleVideoSelect}
       />
 
       <div className="result-stack">
