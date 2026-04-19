@@ -15,6 +15,7 @@ import {
 } from "@/lib/api"
 import { clearAnalysisSession, getAnalysisSessionId } from "@/lib/session"
 import { generateScriptDraft } from "@/lib/script-generator"
+import type { ProcessingFlow, ProcessingState, ProcessingStep } from "@/lib/processing"
 import type {
   AnalyzeRequest,
   AnalyzeResponse,
@@ -25,14 +26,12 @@ import type {
 import { AnalysisForm } from "./analysis-form"
 import { AnalysisHistory } from "./analysis-history"
 import { DraftComparison } from "./draft-comparison"
+import { ProcessingStatus } from "./processing-status"
 import { ResultCard } from "./result-card"
-import { VideoJobStatus } from "./video-job-status"
 
 const AUTO_RESCORE_ENABLED = true
 const AUTO_RESCORE_DELAY_MS = 300
 const VIDEO_JOB_POLL_INTERVAL_MS = 2500
-
-type VideoJobPhase = "idle" | "uploading" | "processing" | "generating" | "failed"
 
 const DEFAULT_FORM: AnalyzeRequest = {
   platform: "TikTok",
@@ -72,8 +71,10 @@ export function AnalysisWorkspace() {
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [isClearingSession, setIsClearingSession] = useState(false)
   const [clientId, setClientId] = useState<string | null>(null)
-  const [videoJobPhase, setVideoJobPhase] = useState<VideoJobPhase>("idle")
-  const [videoJobError, setVideoJobError] = useState<string | null>(null)
+  const [processingState, setProcessingState] = useState<ProcessingState>("idle")
+  const [processingFlow, setProcessingFlow] = useState<ProcessingFlow | null>(null)
+  const [processingStep, setProcessingStep] = useState<ProcessingStep | null>(null)
+  const [processingError, setProcessingError] = useState<string | null>(null)
   const [videoJobId, setVideoJobId] = useState<string | null>(null)
   const [historyEntries, setHistoryEntries] = useState<AnalysisHistoryEntry[]>([])
   const [isHistoryLoading, setIsHistoryLoading] = useState(true)
@@ -90,6 +91,8 @@ export function AnalysisWorkspace() {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null)
   const [videoDurationSeconds, setVideoDurationSeconds] = useState<number | null>(null)
   const draftGenerationTimerRef = useRef<number | null>(null)
+  const processingCompletionTimerRef = useRef<number | null>(null)
+  const processingResetTimerRef = useRef<number | null>(null)
   const videoJobTokenRef = useRef(0)
   const videoJobPollTimerRef = useRef<number | null>(null)
   const videoJobSnapshotRef = useRef<AnalyzeRequest | null>(null)
@@ -102,6 +105,12 @@ export function AnalysisWorkspace() {
     return () => {
       if (draftGenerationTimerRef.current !== null) {
         window.clearTimeout(draftGenerationTimerRef.current)
+      }
+      if (processingCompletionTimerRef.current !== null) {
+        window.clearTimeout(processingCompletionTimerRef.current)
+      }
+      if (processingResetTimerRef.current !== null) {
+        window.clearTimeout(processingResetTimerRef.current)
       }
       if (videoJobPollTimerRef.current !== null) {
         window.clearTimeout(videoJobPollTimerRef.current)
@@ -247,12 +256,30 @@ export function AnalysisWorkspace() {
     }
   }
 
-  function resetVideoJobState() {
+  function clearProcessingCompletionTimer() {
+    if (processingCompletionTimerRef.current !== null) {
+      window.clearTimeout(processingCompletionTimerRef.current)
+      processingCompletionTimerRef.current = null
+    }
+  }
+
+  function clearProcessingResetTimer() {
+    if (processingResetTimerRef.current !== null) {
+      window.clearTimeout(processingResetTimerRef.current)
+      processingResetTimerRef.current = null
+    }
+  }
+
+  function resetProcessingState() {
     videoJobTokenRef.current += 1
     clearVideoJobTimer()
+    clearProcessingCompletionTimer()
+    clearProcessingResetTimer()
     videoJobSnapshotRef.current = null
-    setVideoJobPhase("idle")
-    setVideoJobError(null)
+    setProcessingState("idle")
+    setProcessingFlow(null)
+    setProcessingStep(null)
+    setProcessingError(null)
     setVideoJobId(null)
   }
 
@@ -263,21 +290,26 @@ export function AnalysisWorkspace() {
     }
 
     if (!hasSessionId(nextSessionId)) {
-      setVideoJobPhase("failed")
-      setVideoJobError("Unable to start video analysis: missing session identifier")
+      setProcessingState("error")
+      setProcessingFlow("video")
+      setProcessingStep("upload")
+      setProcessingError("Unable to start video analysis: missing session identifier")
       return
     }
 
     const token = videoJobTokenRef.current + 1
     videoJobTokenRef.current = token
     videoJobSnapshotRef.current = { ...form }
-    setVideoJobPhase("uploading")
-    setVideoJobError(null)
+    setProcessingFlow("video")
+    setProcessingState("uploading")
+    setProcessingStep("upload")
+    setProcessingError(null)
     setVideoJobId(null)
     setAnalysisError(null)
     setPendingAutoRescoreHook(null)
     setAutoRescoreNote(null)
     clearVideoJobTimer()
+    clearProcessingCompletionTimer()
 
     try {
       const upload = await requestUploadUrl(
@@ -292,7 +324,8 @@ export function AnalysisWorkspace() {
         return
       }
 
-      setVideoJobPhase("processing")
+      setProcessingStep("transcript")
+      setProcessingState("transcribing")
 
       const snapshot = videoJobSnapshotRef.current ?? form
       const job = await createAnalysisJob(
@@ -318,25 +351,31 @@ export function AnalysisWorkspace() {
 
       setVideoJobId(job.job_id)
       if (job.status === "failed") {
-        setVideoJobPhase("failed")
-        setVideoJobError(job.error ?? "Video analysis failed")
+        setProcessingState("error")
+        setProcessingFlow("video")
+        setProcessingStep("transcript")
+        setProcessingError(job.error ?? "Video analysis failed")
         setVideoJobId(null)
+        setProcessingFlow("video")
       }
     } catch (jobStartError) {
       if (token !== videoJobTokenRef.current) {
         return
       }
 
-      setVideoJobPhase("failed")
-      setVideoJobError(
+      setProcessingState("error")
+      setProcessingFlow("video")
+      setProcessingStep("upload")
+      setProcessingError(
         jobStartError instanceof Error ? jobStartError.message : "Unable to start video analysis",
       )
       setVideoJobId(null)
+      setProcessingFlow("video")
     }
   }
 
   useEffect(() => {
-    if (!videoJobId || videoJobPhase === "failed" || videoJobPhase === "idle") {
+    if (!videoJobId || processingState === "error" || processingState === "idle") {
       return
     }
 
@@ -353,8 +392,10 @@ export function AnalysisWorkspace() {
       const sessionId = hasSessionId(nextSessionId) ? nextSessionId : null
 
       if (!sessionId) {
-        setVideoJobPhase("failed")
-        setVideoJobError("Unable to check video analysis status: missing session identifier")
+        setProcessingState("error")
+        setProcessingFlow("video")
+        setProcessingStep("score")
+        setProcessingError("Unable to check video analysis status: missing session identifier")
         setVideoJobId(null)
         return
       }
@@ -381,22 +422,49 @@ export function AnalysisWorkspace() {
           }
           setPendingAutoRescoreHook(null)
           setAutoRescoreNote(null)
-          setVideoJobPhase("idle")
-          setVideoJobError(null)
-          setVideoJobId(null)
+          setProcessingStep("feedback")
+          setProcessingState("coaching")
+          setProcessingFlow("video")
+          setProcessingError(null)
           clearVideoJobTimer()
+          clearProcessingCompletionTimer()
+          clearProcessingResetTimer()
+          processingCompletionTimerRef.current = window.setTimeout(() => {
+            if (token !== videoJobTokenRef.current) {
+              return
+            }
+            setProcessingState("complete")
+            setProcessingFlow("video")
+            setProcessingStep("feedback")
+          }, 250)
+          processingResetTimerRef.current = window.setTimeout(() => {
+            if (token !== videoJobTokenRef.current) {
+              return
+            }
+            setProcessingState("idle")
+            setProcessingFlow(null)
+            setVideoJobId(null)
+            setProcessingError(null)
+            clearProcessingCompletionTimer()
+            clearProcessingResetTimer()
+          }, 1100)
           return
         }
 
         if (job.status === "failed") {
-          setVideoJobPhase("failed")
-          setVideoJobError(job.error ?? "Video analysis failed")
+          setProcessingState("error")
+          setProcessingFlow("video")
+          setProcessingStep("score")
+          setProcessingError(job.error ?? "Video analysis failed")
           setVideoJobId(null)
+          setProcessingFlow("video")
           clearVideoJobTimer()
           return
         }
 
-        setVideoJobPhase(job.status === "processing" ? "generating" : "processing")
+        setProcessingStep(job.status === "processing" ? "score" : "transcript")
+        setProcessingState(job.status === "processing" ? "scoring" : "transcribing")
+        setProcessingFlow("video")
         clearVideoJobTimer()
         videoJobPollTimerRef.current = window.setTimeout(() => {
           void pollVideoJob()
@@ -410,13 +478,16 @@ export function AnalysisWorkspace() {
           return
         }
 
-        setVideoJobPhase("failed")
-        setVideoJobError(
+        setProcessingState("error")
+        setProcessingFlow("video")
+        setProcessingStep("score")
+        setProcessingError(
           jobPollError instanceof Error
             ? jobPollError.message
             : "Unable to load video analysis status",
         )
         setVideoJobId(null)
+        setProcessingFlow("video")
         clearVideoJobTimer()
       }
     }
@@ -459,19 +530,43 @@ export function AnalysisWorkspace() {
 
     setIsSubmitting(true)
     setAnalysisError(null)
+    setProcessingFlow("analysis")
+    setProcessingState("scoring")
+    setProcessingStep("score")
+    setProcessingError(null)
+    clearProcessingCompletionTimer()
+    clearProcessingResetTimer()
     if (result) {
       setPreviousResult(result)
     }
 
     try {
       const analysis = await analyzeContent(nextDraft, nextSessionId)
+      setProcessingStep("feedback")
+      setProcessingState("coaching")
+      setProcessingFlow("analysis")
       setResult(analysis)
       setAnalyzedHook(nextDraft.hook)
       await refreshHistory(nextSessionId)
+      clearProcessingCompletionTimer()
+      clearProcessingResetTimer()
+      processingCompletionTimerRef.current = window.setTimeout(() => {
+        setProcessingState("complete")
+        setProcessingFlow("analysis")
+        setProcessingStep("feedback")
+        processingResetTimerRef.current = window.setTimeout(() => {
+          setProcessingState("idle")
+          setProcessingFlow(null)
+          setProcessingStep(null)
+        }, 900)
+      }, 240)
     } catch (submitError) {
       const message =
         submitError instanceof Error ? submitError.message : "Unable to analyze draft"
-      setAnalysisError(message)
+      setProcessingState("error")
+      setProcessingFlow("analysis")
+      setProcessingStep("score")
+      setProcessingError(message)
       console.error("[AnalysisWorkspace] analyze draft failed", {
         message,
         clientId: nextSessionId,
@@ -486,8 +581,8 @@ export function AnalysisWorkspace() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (videoJobPhase !== "idle") {
-      resetVideoJobState()
+    if (processingState !== "idle") {
+      resetProcessingState()
     }
     await runAnalysis(form)
   }
@@ -528,7 +623,7 @@ export function AnalysisWorkspace() {
         window.clearTimeout(draftGenerationTimerRef.current)
         draftGenerationTimerRef.current = null
       }
-      resetVideoJobState()
+      resetProcessingState()
       setIsGeneratingScript(false)
       await clearSession(nextSessionId)
       const rotatedSessionId = clearAnalysisSession()
@@ -574,7 +669,7 @@ export function AnalysisWorkspace() {
   function handleVideoSelect(nextFile: File | null) {
     if (!nextFile) {
       setVideoFile(null)
-      resetVideoJobState()
+      resetProcessingState()
       return
     }
 
@@ -582,17 +677,40 @@ export function AnalysisWorkspace() {
     void startVideoJob(nextFile)
   }
 
-  const isVideoJobActive =
-    videoJobPhase === "uploading" ||
-    videoJobPhase === "processing" ||
-    videoJobPhase === "generating"
+  const isProcessingActive = processingState !== "idle"
+
+  function retryProcessing() {
+    if (processingFlow === "video") {
+      if (videoFile) {
+        void startVideoJob(videoFile)
+      }
+      return
+    }
+
+    if (processingFlow === "script") {
+      resetProcessingState()
+      handleGenerateScript()
+      return
+    }
+
+    if (processingFlow === "analysis") {
+      resetProcessingState()
+      void runAnalysis(form)
+    }
+  }
 
   function handleGenerateScript() {
-    if (isSubmitting || isSavingDraft || isGeneratingScript || isVideoJobActive) {
+    if (isSubmitting || isSavingDraft || isGeneratingScript || isProcessingActive) {
       return
     }
 
     setIsGeneratingScript(true)
+    setProcessingFlow("script")
+    setProcessingState("scoring")
+    setProcessingStep("score")
+    setProcessingError(null)
+    clearProcessingCompletionTimer()
+    clearProcessingResetTimer()
     if (draftGenerationTimerRef.current !== null) {
       window.clearTimeout(draftGenerationTimerRef.current)
     }
@@ -616,11 +734,24 @@ export function AnalysisWorkspace() {
         caption: generated.caption,
         transcript: generated.transcript,
       }))
+      setProcessingStep("feedback")
+      setProcessingState("coaching")
+      setProcessingFlow("script")
       setAppliedHook(null)
       setPendingAutoRescoreHook(null)
       setAutoRescoreNote(null)
       setAnalysisError(null)
       setIsGeneratingScript(false)
+      processingCompletionTimerRef.current = window.setTimeout(() => {
+        setProcessingState("complete")
+        setProcessingFlow("script")
+        setProcessingStep("feedback")
+        processingResetTimerRef.current = window.setTimeout(() => {
+          setProcessingState("idle")
+          setProcessingFlow(null)
+          setProcessingStep(null)
+        }, 700)
+      }, 220)
       draftGenerationTimerRef.current = null
     }, 140)
   }
@@ -629,7 +760,7 @@ export function AnalysisWorkspace() {
     Boolean(result && analyzedHook && form.hook.trim() !== analyzedHook.trim())
 
   useEffect(() => {
-    if (!AUTO_RESCORE_ENABLED || !pendingAutoRescoreHook || isSubmitting) {
+    if (!AUTO_RESCORE_ENABLED || !pendingAutoRescoreHook || isSubmitting || isProcessingActive) {
       return
     }
 
@@ -646,7 +777,7 @@ export function AnalysisWorkspace() {
     return () => {
       window.clearTimeout(timeout)
     }
-  }, [form, isSubmitting, pendingAutoRescoreHook])
+  }, [form, isSubmitting, pendingAutoRescoreHook, isProcessingActive])
 
   return (
     <div className="workspace-grid">
@@ -655,7 +786,7 @@ export function AnalysisWorkspace() {
         isSubmitting={isSubmitting}
         isSavingDraft={isSavingDraft}
         isGeneratingScript={isGeneratingScript}
-        isVideoJobActive={isVideoJobActive}
+        isProcessingActive={isProcessingActive}
         draftIdea={draftIdea}
         onSubmit={handleSubmit}
         onGenerateScript={handleGenerateScript}
@@ -680,15 +811,13 @@ export function AnalysisWorkspace() {
           </aside>
         ) : null}
 
-        <VideoJobStatus
-          phase={videoJobPhase}
+        <ProcessingStatus
+          state={processingState}
+          flow={processingFlow ?? "analysis"}
+          step={processingStep}
           fileName={videoFile?.name ?? null}
-          error={videoJobError}
-          onRetry={() => {
-            if (videoFile) {
-              void startVideoJob(videoFile)
-            }
-          }}
+          error={processingError}
+          onRetry={retryProcessing}
         />
 
         <ResultCard
@@ -696,7 +825,8 @@ export function AnalysisWorkspace() {
           previousResult={previousResult}
           selectedHook={appliedHook}
           canRescore={canRescoreDraft}
-          isVideoJobActive={isVideoJobActive}
+          isProcessingActive={isProcessingActive}
+          isProcessingVisible={isProcessingActive}
           isAutoRescoring={Boolean(pendingAutoRescoreHook)}
           autoRescoreNote={autoRescoreNote}
           isSubmitting={isSubmitting}
