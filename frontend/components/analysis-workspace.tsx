@@ -76,6 +76,7 @@ export function AnalysisWorkspace() {
   const [autoRescoreNote, setAutoRescoreNote] = useState<string | null>(null)
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null)
+  const [videoDurationSeconds, setVideoDurationSeconds] = useState<number | null>(null)
 
   useEffect(() => {
     setClientId(getAnalysisSessionId())
@@ -84,13 +85,33 @@ export function AnalysisWorkspace() {
   useEffect(() => {
     if (!videoFile) {
       setVideoPreviewUrl(null)
+      setVideoDurationSeconds(null)
       return
     }
 
     const objectUrl = URL.createObjectURL(videoFile)
     setVideoPreviewUrl(objectUrl)
 
+    const probe = document.createElement("video")
+    probe.preload = "metadata"
+    probe.src = objectUrl
+
+    function handleMetadata() {
+      setVideoDurationSeconds(Number.isFinite(probe.duration) ? Math.round(probe.duration) : null)
+    }
+
+    function handleError() {
+      setVideoDurationSeconds(null)
+    }
+
+    probe.addEventListener("loadedmetadata", handleMetadata, { once: true })
+    probe.addEventListener("error", handleError, { once: true })
+
     return () => {
+      probe.removeEventListener("loadedmetadata", handleMetadata)
+      probe.removeEventListener("error", handleError)
+      probe.removeAttribute("src")
+      probe.load()
       URL.revokeObjectURL(objectUrl)
     }
   }, [videoFile])
@@ -386,6 +407,7 @@ export function AnalysisWorkspace() {
         onFieldChange={updateField}
         videoFile={videoFile}
         videoPreviewUrl={videoPreviewUrl}
+        videoDurationSeconds={videoDurationSeconds}
         onVideoSelect={handleVideoSelect}
       />
 

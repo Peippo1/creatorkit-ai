@@ -1,8 +1,10 @@
 "use client"
 
-import type { DragEvent, ChangeEvent, FormEvent } from "react"
+import type { FormEvent } from "react"
 
 import type { AnalyzeRequest } from "@/lib/types"
+
+import { UploadCard } from "./upload-card"
 
 type AnalysisFormProps = {
   value: AnalyzeRequest
@@ -10,6 +12,7 @@ type AnalysisFormProps = {
   isSavingDraft: boolean
   videoFile: File | null
   videoPreviewUrl: string | null
+  videoDurationSeconds: number | null
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
   onGenerateScript: () => void
   onSaveDraft: () => void
@@ -37,98 +40,54 @@ const CONTENT_TYPE_OPTIONS = [
   { value: "long_form", label: "Long-form script" },
 ]
 
-function isSupportedVideoFile(file: File | null): file is File {
-  if (!file) {
-    return false
-  }
-
-  const loweredName = file.name.toLowerCase()
-  return file.type.startsWith("video/") || loweredName.endsWith(".mp4") || loweredName.endsWith(".mov")
-}
-
 export function AnalysisForm({
   value,
   isSubmitting,
   isSavingDraft,
   videoFile,
   videoPreviewUrl,
+  videoDurationSeconds,
   onSubmit,
   onGenerateScript,
   onSaveDraft,
   onFieldChange,
   onVideoSelect,
 }: AnalysisFormProps) {
-  function handleVideoInputChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null
-    onVideoSelect(isSupportedVideoFile(file) ? file : null)
-  }
-
-  function handleVideoDrop(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault()
-    const file = event.dataTransfer.files?.[0] ?? null
-    onVideoSelect(isSupportedVideoFile(file) ? file : null)
-  }
-
-  function handleVideoDragOver(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault()
-  }
-
   return (
     <form className="panel form" onSubmit={onSubmit}>
       <div className="form-intro">
         <span className="panel-label">Input</span>
-        <h3>Upload your video or paste your script</h3>
-        <p>Analyze the hook, caption, and transcript while keeping video uploads local for now.</p>
+        <h3>Upload your video or start with a script</h3>
+        <p>Upload a clip, or begin with a script and tighten it before analysing.</p>
       </div>
 
-      <section className="video-upload" aria-label="Video upload">
-        <input
-          id="video_upload"
-          className="sr-only"
-          type="file"
-          accept=".mp4,.mov,video/mp4,video/quicktime"
-          onChange={handleVideoInputChange}
-        />
-        <div
-          className={`video-upload__dropzone${videoFile ? " video-upload__dropzone--active" : ""}`}
-          onDrop={handleVideoDrop}
-          onDragOver={handleVideoDragOver}
-        >
-          <span className="panel-label">Video upload</span>
-          <strong>{videoFile ? "Video selected" : "Drag and drop a video here"}</strong>
-          <p>{videoFile ? videoFile.name : "MP4 or MOV files only. The file stays in your browser."}</p>
-          <div className="video-upload__actions">
-            <label className="button button--ghost button--tiny video-upload__button" htmlFor="video_upload">
-              Choose video
-            </label>
-            {videoFile ? (
-              <button
-                className="button button--ghost button--tiny"
-                type="button"
-                onClick={(event) => {
-                  event.preventDefault()
-                  onVideoSelect(null)
-                }}
-              >
-                Remove
-              </button>
-            ) : null}
-          </div>
+      <UploadCard
+        videoFile={videoFile}
+        videoPreviewUrl={videoPreviewUrl}
+        videoDurationSeconds={videoDurationSeconds}
+        onVideoSelect={onVideoSelect}
+      />
+
+      <div className="form-divider" aria-hidden="true">
+        <span>OR</span>
+      </div>
+
+      <div className="script-toolbar">
+        <div>
+          <span className="panel-label">Script start</span>
+          <p>Generate a quick draft from your platform, format, and niche.</p>
         </div>
+        <button
+          className="button button--ghost"
+          type="button"
+          onClick={onGenerateScript}
+          disabled={isSubmitting || isSavingDraft}
+        >
+          Generate script
+        </button>
+      </div>
 
-        {videoFile ? (
-          <div className="video-upload__preview" aria-live="polite">
-            {videoPreviewUrl ? (
-              <video controls muted playsInline src={videoPreviewUrl} />
-            ) : null}
-            <p className="video-upload__note">Add a transcript or description for best results.</p>
-          </div>
-        ) : (
-          <p className="video-upload__note">Upload your video, or keep working with a script-only draft.</p>
-        )}
-      </section>
-
-      <div className="form-grid">
+      <div className="form-grid form-grid--script">
         <div className="field">
           <label htmlFor="platform">Publishing platform</label>
           <select
@@ -233,14 +192,6 @@ export function AnalysisForm({
       </label>
 
       <div className="actions">
-        <button
-          className="button button--ghost"
-          type="button"
-          onClick={onGenerateScript}
-          disabled={isSubmitting || isSavingDraft}
-        >
-          Generate script
-        </button>
         <button className="button" type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Analyzing..." : "Analyze draft"}
         </button>
@@ -255,7 +206,6 @@ export function AnalysisForm({
       </div>
 
       <div className="form-notes">
-        <span className="helper">Uses your configured API endpoint.</span>
         <span className="helper">Use this as a starting point — edit before analysing.</span>
       </div>
 
