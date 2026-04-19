@@ -11,6 +11,7 @@ type AnalysisFormProps = {
   videoFile: File | null
   videoPreviewUrl: string | null
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  onGenerateScript: () => void
   onSaveDraft: () => void
   onFieldChange: <K extends keyof AnalyzeRequest>(field: K, nextValue: AnalyzeRequest[K]) => void
   onVideoSelect: (file: File | null) => void
@@ -52,6 +53,7 @@ export function AnalysisForm({
   videoFile,
   videoPreviewUrl,
   onSubmit,
+  onGenerateScript,
   onSaveDraft,
   onFieldChange,
   onVideoSelect,
@@ -231,6 +233,14 @@ export function AnalysisForm({
       </label>
 
       <div className="actions">
+        <button
+          className="button button--ghost"
+          type="button"
+          onClick={onGenerateScript}
+          disabled={isSubmitting || isSavingDraft}
+        >
+          Generate script
+        </button>
         <button className="button" type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Analyzing..." : "Analyze draft"}
         </button>
@@ -242,7 +252,11 @@ export function AnalysisForm({
         >
           {isSavingDraft ? "Saving..." : "Save draft"}
         </button>
+      </div>
+
+      <div className="form-notes">
         <span className="helper">Uses your configured API endpoint.</span>
+        <span className="helper">Use this as a starting point — edit before analysing.</span>
       </div>
 
       <p className="trust-note">

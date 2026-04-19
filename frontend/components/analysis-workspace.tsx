@@ -11,6 +11,7 @@ import {
   saveDraft,
 } from "@/lib/api"
 import { clearAnalysisSession, getAnalysisSessionId } from "@/lib/session"
+import { generateScriptDraft } from "@/lib/script-generator"
 import type {
   AnalyzeRequest,
   AnalyzeResponse,
@@ -327,6 +328,29 @@ export function AnalysisWorkspace() {
     setVideoFile(nextFile)
   }
 
+  function handleGenerateScript() {
+    if (isSubmitting || isSavingDraft) {
+      return
+    }
+
+    const generated = generateScriptDraft({
+      platform: form.platform,
+      content_type: form.content_type,
+      niche: form.niche,
+    })
+
+    setForm((current) => ({
+      ...current,
+      hook: generated.hook,
+      caption: generated.caption,
+      transcript: generated.transcript,
+    }))
+    setAppliedHook(null)
+    setPendingAutoRescoreHook(null)
+    setAutoRescoreNote(null)
+    setAnalysisError(null)
+  }
+
   const canRescoreDraft =
     Boolean(result && analyzedHook && form.hook.trim() !== analyzedHook.trim())
 
@@ -357,6 +381,7 @@ export function AnalysisWorkspace() {
         isSubmitting={isSubmitting}
         isSavingDraft={isSavingDraft}
         onSubmit={handleSubmit}
+        onGenerateScript={handleGenerateScript}
         onSaveDraft={handleSaveDraft}
         onFieldChange={updateField}
         videoFile={videoFile}

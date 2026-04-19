@@ -255,6 +255,11 @@ textarea {
   margin-top: 4px;
 }
 
+.form-notes {
+  display: grid;
+  gap: 4px;
+}
+
 .button {
   appearance: none;
   border: 0;
