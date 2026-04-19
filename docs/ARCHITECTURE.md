@@ -32,6 +32,16 @@
 - creator account and auth code kept in the repo for later reactivation, but not imported by the anonymous deployment
 - SQLite-backed persistence for analysis history and draft snapshots
 
+## Deployment Checklist
+
+See [`docs/DEPLOYMENT.md`](./DEPLOYMENT.md) for the current Vercel checklist covering:
+
+- `CREATORKIT_BACKEND_URL`
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+- `CREATORKIT_SESSION_RETENTION_LIMIT`
+- `CREATORKIT_SESSION_RETENTION_DAYS`
+
 ## Frontend
 
 - Next.js App Router scaffold

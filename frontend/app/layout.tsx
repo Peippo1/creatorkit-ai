@@ -31,6 +31,15 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${spaceGrotesk.variable} ${ibmPlexMono.variable}`}>
         {children}
+        <footer className="site-footer" aria-label="Site footer">
+          <div className="site-footer__inner">
+            <p className="site-footer__copy">CreatorKit AI helps creators improve drafts before publishing.</p>
+            <nav className="site-footer__nav" aria-label="Legal">
+              <a href="/privacy">Privacy Policy</a>
+              <a href="/terms">Terms of Service</a>
+            </nav>
+          </div>
+        </footer>
         <Analytics />
         <SpeedInsights />
       </body>
