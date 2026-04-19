@@ -54,6 +54,7 @@ export function AnalysisWorkspace() {
   const [form, setForm] = useState<AnalyzeRequest>(DEFAULT_FORM)
   const [result, setResult] = useState<AnalyzeResponse | null>(null)
   const [previousResult, setPreviousResult] = useState<AnalyzeResponse | null>(null)
+  const [appliedHook, setAppliedHook] = useState<string | null>(null)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
@@ -173,6 +174,9 @@ export function AnalysisWorkspace() {
       ...current,
       [field]: nextValue,
     }))
+    if (field === "hook") {
+      setAppliedHook((current) => (current === nextValue ? current : null))
+    }
   }
 
   async function runAnalysis(nextDraft: AnalyzeRequest) {
@@ -257,6 +261,7 @@ export function AnalysisWorkspace() {
       setClientId(rotatedSessionId)
       setResult(null)
       setPreviousResult(null)
+      setAppliedHook(null)
       setAnalysisError(null)
       setHistoryError(null)
       setDraftsError(null)
@@ -276,13 +281,12 @@ export function AnalysisWorkspace() {
     await runAnalysis(form)
   }
 
-  async function handleUseHook(hook: string) {
-    const nextDraft = {
-      ...form,
+  function handleUseHook(hook: string) {
+    setForm((current) => ({
+      ...current,
       hook,
-    }
-    setForm(nextDraft)
-    await runAnalysis(nextDraft)
+    }))
+    setAppliedHook(hook)
   }
 
   return (
@@ -311,6 +315,7 @@ export function AnalysisWorkspace() {
         <ResultCard
           result={result}
           previousResult={previousResult}
+          selectedHook={appliedHook}
           isSubmitting={isSubmitting}
           onRescore={handleApplyFixAndRescore}
           onUseHook={handleUseHook}

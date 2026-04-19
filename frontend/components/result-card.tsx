@@ -3,6 +3,7 @@ import type { AnalyzeResponse } from "@/lib/types"
 type ResultCardProps = {
   result: AnalyzeResponse | null
   previousResult: AnalyzeResponse | null
+  selectedHook: string | null
   isSubmitting: boolean
   onRescore: () => void
   onUseHook: (hook: string) => void
@@ -115,9 +116,28 @@ function deltaLabel(previous: number, current: number): { text: string; tone: "u
   return { text: "No change", tone: "flat" }
 }
 
+function coachingLoopMessage(previous: AnalyzeResponse | null, current: AnalyzeResponse): string | null {
+  if (!previous) {
+    return null
+  }
+
+  const delta = current.overall_score - previous.overall_score
+
+  if (delta > 0) {
+    return `Nice improvement — tightening the hook increased your score by +${delta}.`
+  }
+
+  if (delta === 0) {
+    return "The hook changed, but the draft may still need work elsewhere."
+  }
+
+  return "This version is less effective — try a stronger payoff or clearer promise."
+}
+
 export function ResultCard({
   result,
   previousResult,
+  selectedHook,
   isSubmitting,
   onRescore,
   onUseHook,
@@ -166,6 +186,7 @@ export function ResultCard({
   const rewrittenHooks = result.rewritten_hooks ?? []
   const topFix = fixForResult(result)
   const insight = coachInsight(result)
+  const loopMessage = coachingLoopMessage(previousResult, result)
   const scoreDelta =
     previousResult !== null ? deltaLabel(previousResult.overall_score, result.overall_score) : null
   const hookLabels = ["Curiosity-led", "Direct", "Authority"]
@@ -197,6 +218,13 @@ export function ResultCard({
           <strong>Re-scoring your latest edit</strong>
           <p>Keep refining the draft above, then check the updated score right here.</p>
         </div>
+      ) : null}
+
+      {loopMessage ? (
+        <article className={`result-loop-message result-loop-message--${scoreDelta?.tone ?? "flat"}`}>
+          <span className="panel-label">Coaching loop</span>
+          <p>{loopMessage}</p>
+        </article>
       ) : null}
 
       <section className="result-summary" aria-label="Analysis summary">
@@ -278,11 +306,34 @@ export function ResultCard({
           </div>
         </div>
 
+        {selectedHook ? (
+          <div className="hook-applied-banner" aria-live="polite">
+            <div>
+              <span className="panel-label">Applied hook</span>
+              <strong>{selectedHook}</strong>
+            </div>
+            <button className="button" type="button" onClick={onRescore}>
+              Re-score this draft
+            </button>
+          </div>
+        ) : null}
+
         <div className="hook-rewrite-grid" id="rewritten-hooks">
           {rewrittenHooks.map((hook, index) => (
-            <article className="hook-rewrite-card" key={`${hook}-${index}`}>
+            <article
+              className="hook-rewrite-card"
+              data-applied={selectedHook === hook ? "true" : "false"}
+              key={`${hook}-${index}`}
+            >
               <div className="hook-rewrite-card__top">
-                <span className="hook-rewrite-index">{hookLabels[index] ?? `Variation ${index + 1}`}</span>
+                <div className="hook-rewrite-card__labels">
+                  <span className="hook-rewrite-index">
+                    {hookLabels[index] ?? `Variation ${index + 1}`}
+                  </span>
+                  {selectedHook === hook ? (
+                    <span className="hook-rewrite-status">Applied</span>
+                  ) : null}
+                </div>
                 <button
                   className="button button--ghost button--tiny"
                   type="button"
