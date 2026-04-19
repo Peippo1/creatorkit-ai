@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 
+import { enforceProxyRateLimit } from "@/lib/proxy-rate-limit"
+
 const BACKEND_BASE_URL = process.env.CREATORKIT_BACKEND_URL ?? "http://localhost:8000"
 
 async function proxyRequest(
@@ -8,6 +10,11 @@ async function proxyRequest(
   context: { params: Promise<{ path?: string[] }> },
 ) {
   const { path = [] } = await context.params
+  const rateLimitResponse = await enforceProxyRateLimit(request, path)
+  if (rateLimitResponse) {
+    return rateLimitResponse
+  }
+
   const targetUrl = new URL(BACKEND_BASE_URL)
   targetUrl.pathname = `/${path.join("/")}`
   targetUrl.search = request.nextUrl.search
@@ -53,5 +60,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ pa
 }
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ path?: string[] }> }) {
+  return proxyRequest(request, context)
+}
+
+export async function DELETE(request: NextRequest, context: { params: Promise<{ path?: string[] }> }) {
   return proxyRequest(request, context)
 }

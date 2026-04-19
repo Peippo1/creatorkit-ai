@@ -54,6 +54,11 @@ npm run dev
 
 The Next.js proxy expects the backend at `http://localhost:8000` by default. You can override that server-side with `CREATORKIT_BACKEND_URL`.
 
+For distributed proxy rate limiting in production, set:
+
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+
 ## What the First Version Does
 
 - accepts platform, content type, hook, caption, transcript, duration, niche, and CTA intent
