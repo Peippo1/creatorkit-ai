@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { FormEvent } from "react"
 
 import {
@@ -74,12 +74,23 @@ export function AnalysisWorkspace() {
   const [selectedDraftId, setSelectedDraftId] = useState<number | null>(null)
   const [pendingAutoRescoreHook, setPendingAutoRescoreHook] = useState<string | null>(null)
   const [autoRescoreNote, setAutoRescoreNote] = useState<string | null>(null)
+  const [draftIdea, setDraftIdea] = useState("")
+  const [isGeneratingScript, setIsGeneratingScript] = useState(false)
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null)
   const [videoDurationSeconds, setVideoDurationSeconds] = useState<number | null>(null)
+  const draftGenerationTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     setClientId(getAnalysisSessionId())
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (draftGenerationTimerRef.current !== null) {
+        window.clearTimeout(draftGenerationTimerRef.current)
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -305,6 +316,11 @@ export function AnalysisWorkspace() {
 
     setIsClearingSession(true)
     try {
+      if (draftGenerationTimerRef.current !== null) {
+        window.clearTimeout(draftGenerationTimerRef.current)
+        draftGenerationTimerRef.current = null
+      }
+      setIsGeneratingScript(false)
       await clearSession(nextSessionId)
       const rotatedSessionId = clearAnalysisSession()
       setClientId(rotatedSessionId)
@@ -320,6 +336,7 @@ export function AnalysisWorkspace() {
       setHistoryEntries([])
       setDraftEntries([])
       setSelectedDraftId(null)
+      setDraftIdea("")
     } catch (clearError) {
       setAnalysisError(
         clearError instanceof Error ? clearError.message : "Unable to clear session",
@@ -350,26 +367,41 @@ export function AnalysisWorkspace() {
   }
 
   function handleGenerateScript() {
-    if (isSubmitting || isSavingDraft) {
+    if (isSubmitting || isSavingDraft || isGeneratingScript) {
       return
     }
 
-    const generated = generateScriptDraft({
-      platform: form.platform,
-      content_type: form.content_type,
-      niche: form.niche,
-    })
+    setIsGeneratingScript(true)
+    if (draftGenerationTimerRef.current !== null) {
+      window.clearTimeout(draftGenerationTimerRef.current)
+    }
 
-    setForm((current) => ({
-      ...current,
-      hook: generated.hook,
-      caption: generated.caption,
-      transcript: generated.transcript,
-    }))
-    setAppliedHook(null)
-    setPendingAutoRescoreHook(null)
-    setAutoRescoreNote(null)
-    setAnalysisError(null)
+    const nextDraftIdea = draftIdea
+    const nextPlatform = form.platform
+    const nextContentType = form.content_type
+    const nextNiche = form.niche
+
+    draftGenerationTimerRef.current = window.setTimeout(() => {
+      const generated = generateScriptDraft({
+        platform: nextPlatform,
+        content_type: nextContentType,
+        niche: nextNiche,
+        idea: nextDraftIdea,
+      })
+
+      setForm((current) => ({
+        ...current,
+        hook: generated.hook,
+        caption: generated.caption,
+        transcript: generated.transcript,
+      }))
+      setAppliedHook(null)
+      setPendingAutoRescoreHook(null)
+      setAutoRescoreNote(null)
+      setAnalysisError(null)
+      setIsGeneratingScript(false)
+      draftGenerationTimerRef.current = null
+    }, 140)
   }
 
   const canRescoreDraft =
@@ -401,9 +433,12 @@ export function AnalysisWorkspace() {
         value={form}
         isSubmitting={isSubmitting}
         isSavingDraft={isSavingDraft}
+        isGeneratingScript={isGeneratingScript}
+        draftIdea={draftIdea}
         onSubmit={handleSubmit}
         onGenerateScript={handleGenerateScript}
         onSaveDraft={handleSaveDraft}
+        onDraftIdeaChange={setDraftIdea}
         onFieldChange={updateField}
         videoFile={videoFile}
         videoPreviewUrl={videoPreviewUrl}

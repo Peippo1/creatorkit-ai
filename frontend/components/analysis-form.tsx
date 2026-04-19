@@ -10,12 +10,15 @@ type AnalysisFormProps = {
   value: AnalyzeRequest
   isSubmitting: boolean
   isSavingDraft: boolean
+  isGeneratingScript: boolean
+  draftIdea: string
   videoFile: File | null
   videoPreviewUrl: string | null
   videoDurationSeconds: number | null
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
   onGenerateScript: () => void
   onSaveDraft: () => void
+  onDraftIdeaChange: (value: string) => void
   onFieldChange: <K extends keyof AnalyzeRequest>(field: K, nextValue: AnalyzeRequest[K]) => void
   onVideoSelect: (file: File | null) => void
 }
@@ -44,12 +47,15 @@ export function AnalysisForm({
   value,
   isSubmitting,
   isSavingDraft,
+  isGeneratingScript,
+  draftIdea,
   videoFile,
   videoPreviewUrl,
   videoDurationSeconds,
   onSubmit,
   onGenerateScript,
   onSaveDraft,
+  onDraftIdeaChange,
   onFieldChange,
   onVideoSelect,
 }: AnalysisFormProps) {
@@ -61,6 +67,46 @@ export function AnalysisForm({
         <p>Begin with a clip, or draft the script first and refine it before analysing.</p>
       </div>
 
+      <section className="draft-generator" aria-label="Generate a draft">
+        <div className="draft-generator__header">
+          <div>
+            <span className="panel-label">Generate a draft</span>
+            <h4>What&apos;s your idea?</h4>
+            <p>Turn a rough angle into a first draft using your current platform, format, and niche.</p>
+          </div>
+          <button
+            className="button button--ghost"
+            type="button"
+            onClick={onGenerateScript}
+            disabled={isSubmitting || isSavingDraft || isGeneratingScript}
+          >
+            {isGeneratingScript ? "Generating draft..." : "Generate script ✨"}
+          </button>
+        </div>
+
+        <label className="field field--bare" htmlFor="draft_idea">
+          <span className="sr-only">What&apos;s your idea?</span>
+          <input
+            id="draft_idea"
+            value={draftIdea}
+            onChange={(event) => onDraftIdeaChange(event.target.value)}
+            placeholder="e.g. show creators how to turn one post into three hooks"
+            autoComplete="off"
+          />
+        </label>
+
+        <div className="draft-generator__meta">
+          <span className="tag">{value.platform}</span>
+          <span className="tag">
+            {CONTENT_TYPE_OPTIONS.find((option) => option.value === value.content_type)?.label ??
+              value.content_type}
+          </span>
+          <span className="tag">{value.niche || "Your niche"}</span>
+        </div>
+
+        <p className="form-note">Use this as a starting point — edit before analysing.</p>
+      </section>
+
       <UploadCard
         videoFile={videoFile}
         videoPreviewUrl={videoPreviewUrl}
@@ -70,21 +116,6 @@ export function AnalysisForm({
 
       <div className="form-divider" aria-hidden="true">
         <span>OR</span>
-      </div>
-
-      <div className="script-toolbar">
-        <div>
-          <span className="panel-label">Script start</span>
-          <p>Generate a quick first draft from your platform, format, and niche.</p>
-        </div>
-        <button
-          className="button button--ghost"
-          type="button"
-          onClick={onGenerateScript}
-          disabled={isSubmitting || isSavingDraft}
-        >
-          Generate script
-        </button>
       </div>
 
       <div className="form-grid form-grid--script">
@@ -192,21 +223,21 @@ export function AnalysisForm({
       </label>
 
       <div className="actions">
-        <button className="button" type="submit" disabled={isSubmitting}>
+        <button className="button" type="submit" disabled={isSubmitting || isGeneratingScript}>
           {isSubmitting ? "Analyzing..." : "Analyze draft"}
         </button>
         <button
           className="button button--ghost"
           type="button"
           onClick={onSaveDraft}
-          disabled={isSavingDraft || isSubmitting}
+          disabled={isSavingDraft || isSubmitting || isGeneratingScript}
         >
           {isSavingDraft ? "Saving..." : "Save draft"}
         </button>
       </div>
 
       <div className="form-notes">
-        <span className="helper">Use this as a starting point — edit before analysing.</span>
+        <span className="helper">You can still write the draft manually below if you prefer.</span>
       </div>
 
       <p className="trust-note">
