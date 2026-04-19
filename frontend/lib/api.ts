@@ -126,11 +126,6 @@ export async function analyzeContent(
   payload: AnalyzeRequest,
   clientId?: string,
 ): Promise<AnalyzeResponse> {
-  console.info("[CreatorKit API] analyze request", {
-    clientId,
-    payload,
-  })
-
   const response = await requestBackend(
     "/analyze",
     {
@@ -156,10 +151,6 @@ export async function listAnalysisHistory(
 ): Promise<AnalysisHistoryResponse> {
   const query = new URLSearchParams()
   query.set("limit", String(limit))
-  console.info("[CreatorKit API] history request", {
-    clientId,
-    query: query.toString(),
-  })
 
   const response = await requestBackend(
     `/history?${query.toString()}`,
@@ -180,11 +171,6 @@ export async function saveDraft(
   payload: AnalyzeRequest,
   clientId?: string,
 ): Promise<SavedDraftResponse> {
-  console.info("[CreatorKit API] save draft request", {
-    clientId,
-    payload,
-  })
-
   const response = await requestBackend(
     "/drafts",
     {
@@ -207,10 +193,6 @@ export async function saveDraft(
 export async function listSavedDrafts(clientId?: string, limit = 10): Promise<SavedDraftsResponse> {
   const query = new URLSearchParams()
   query.set("limit", String(limit))
-  console.info("[CreatorKit API] drafts request", {
-    clientId,
-    query: query.toString(),
-  })
 
   const response = await requestBackend(
     `/drafts?${query.toString()}`,

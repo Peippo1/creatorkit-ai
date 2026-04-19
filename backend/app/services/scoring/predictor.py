@@ -6,6 +6,7 @@ from .profiles import (
     LONG_FORM_PLATFORMS,
     TEXT_FIRST_PLATFORMS,
     calculate_overall_score,
+    normalize_content_type,
     normalize_text,
     select_scoring_profile,
     word_count,
@@ -82,7 +83,7 @@ def _clarity_score(payload: AnalyzeRequest) -> int:
     caption_words = _word_count(payload.caption)
     transcript_words = _word_count(payload.transcript)
     niche_words = _word_count(payload.niche)
-    content_type = _normalize(payload.content_type)
+    content_type = normalize_content_type(payload.content_type)
 
     if caption_words >= 12:
         score += 12
@@ -125,7 +126,7 @@ def _clarity_score(payload: AnalyzeRequest) -> int:
 def _platform_fit_score(payload: AnalyzeRequest) -> int:
     score = 45
     platform = _normalize(payload.platform)
-    content_type = _normalize(payload.content_type)
+    content_type = normalize_content_type(payload.content_type)
     duration = payload.duration_seconds
 
     if platform in SHORT_FORM_PLATFORMS:

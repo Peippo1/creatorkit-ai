@@ -24,7 +24,7 @@ import { ResultCard } from "./result-card"
 
 const DEFAULT_FORM: AnalyzeRequest = {
   platform: "TikTok",
-  content_type: "Short-form video",
+  content_type: "short_video",
   hook: "Most creators miss this one edit before publishing.",
   caption: "A creator-focused draft that needs a fast pre-publish review.",
   transcript:

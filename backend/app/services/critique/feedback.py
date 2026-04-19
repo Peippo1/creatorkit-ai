@@ -7,6 +7,7 @@ from ..scoring.profiles import (
     LONG_FORM_PLATFORMS,
     SHORT_FORM_PLATFORMS,
     TEXT_FIRST_PLATFORMS,
+    normalize_content_type,
     normalize_text,
     word_count,
 )
@@ -170,7 +171,7 @@ def build_feedback(
     suggestions: list[str] = []
 
     platform = normalize_text(payload.platform)
-    content_type = normalize_text(payload.content_type)
+    content_type = normalize_content_type(payload.content_type)
     hook_words = word_count(payload.hook)
     caption_words = word_count(payload.caption)
     transcript_words = word_count(payload.transcript)

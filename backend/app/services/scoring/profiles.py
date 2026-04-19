@@ -28,6 +28,18 @@ def normalize_text(text: str) -> str:
     return " ".join(text.lower().split())
 
 
+def normalize_content_type(text: str) -> str:
+    content_type = normalize_text(text)
+    alias_map = {
+        "short_video": "short-form video",
+        "hook_led_video": "hook-led video",
+        "educational_carousel": "educational carousel",
+        "text_post": "text post",
+        "long_form": "long-form script",
+    }
+    return alias_map.get(content_type, content_type)
+
+
 def word_count(text: str) -> int:
     return len([part for part in text.split() if part])
 
@@ -86,7 +98,7 @@ GENERAL_PROFILE = ScoringProfile(
 
 def select_scoring_profile(payload: AnalyzeRequest) -> ScoringProfile:
     platform = normalize_text(payload.platform)
-    content_type = normalize_text(payload.content_type)
+    content_type = normalize_content_type(payload.content_type)
 
     if platform in SHORT_FORM_PLATFORMS or "short-form" in content_type or "hook-led" in content_type:
         return SHORT_FORM_PROFILE

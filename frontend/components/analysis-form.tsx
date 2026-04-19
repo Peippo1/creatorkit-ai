@@ -22,13 +22,13 @@ const PLATFORM_OPTIONS = [
 ]
 
 const CONTENT_TYPE_OPTIONS = [
-  "Short-form video",
-  "Hook-led video",
-  "Educational carousel",
-  "Tutorial",
-  "Thread",
-  "Post draft",
-  "Long-form script",
+  { value: "short_video", label: "Short-form video" },
+  { value: "hook_led_video", label: "Hook-led video" },
+  { value: "educational_carousel", label: "Educational carousel" },
+  { value: "tutorial", label: "Tutorial" },
+  { value: "thread", label: "Thread" },
+  { value: "text_post", label: "Post draft" },
+  { value: "long_form", label: "Long-form script" },
 ]
 
 export function AnalysisForm({
@@ -73,8 +73,8 @@ export function AnalysisForm({
             required
           >
             {CONTENT_TYPE_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>
