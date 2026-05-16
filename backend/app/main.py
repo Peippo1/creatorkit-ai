@@ -12,6 +12,8 @@ from .api.routes.jobs import router as jobs_router
 from .api.routes.history import router as history_router
 from .api.routes.uploads import router as uploads_router
 from .api.routes.session import router as session_router
+from .core.env import EnvValidationError, validate_backend_env
+from .core.redaction import redact_for_log
 from .services.history.store import initialize_history_store
 
 logger = logging.getLogger(__name__)
@@ -49,9 +51,15 @@ app.include_router(session_router)
 @app.on_event("startup")
 def startup() -> None:
     try:
+        validate_backend_env()
+    except EnvValidationError:
+        logger.exception("Backend environment validation failed")
+        raise
+
+    try:
         initialize_history_store()
     except Exception as exc:
-        logger.warning("History store initialization skipped: %s", exc)
+        logger.warning("History store initialization skipped: %s", redact_for_log(str(exc)))
 
 
 @app.get("/")

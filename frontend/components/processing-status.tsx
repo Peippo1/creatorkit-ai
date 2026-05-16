@@ -170,14 +170,19 @@ export function ProcessingStatus({
 
   const progress = progressFor(flow, state)
   const activeStepIndex = stepIndex(step)
+  const isCompleteState = state === "complete"
   const showErrorTone = state === "error"
+  const surfaceClass =
+    state === "complete"
+      ? "border-[rgba(15,157,88,0.18)] bg-[linear-gradient(135deg,rgba(15,157,88,0.08),rgba(255,255,255,0.94))]"
+      : FLOW_CONFIG[flow].accentClass
 
   return (
     <aside
       className={[
         "mx-auto w-full max-w-[560px] justify-self-center rounded-[28px] border p-5 shadow-[0_20px_60px_rgba(23,19,18,0.12)] backdrop-blur-md transition-[background-color,border-color,opacity,transform] duration-200 ease-out md:p-6",
         "border-[color:var(--line)] bg-[color:var(--panel)]",
-        FLOW_CONFIG[flow].accentClass,
+        surfaceClass,
       ]
         .filter(Boolean)
         .join(" ")}
@@ -187,15 +192,47 @@ export function ProcessingStatus({
       <div className="space-y-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4">
           <div className="min-w-0">
-            <span className="inline-flex items-center rounded-full bg-[rgba(31,94,255,0.1)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[color:var(--accent)]">
-              Processing
-            </span>
-            <h4 className="mt-3 text-[1.05rem] font-semibold tracking-[-0.03em] text-[color:var(--text)]">
-              {titleFor(flow, state)}
-            </h4>
-            <p className="mt-2 max-w-[62ch] text-sm leading-6 text-[color:var(--muted)]">
-              {subtitleFor(flow, state, error)}
-            </p>
+            {isCompleteState ? (
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[rgba(15,157,88,0.18)] bg-[rgba(255,255,255,0.78)] text-[color:var(--success)] shadow-[0_8px_20px_rgba(15,157,88,0.12)]">
+                  <svg
+                    aria-hidden="true"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    className="h-5 w-5"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2.25"
+                  >
+                    <path d="m5 12 4 4L19 6" />
+                  </svg>
+                </span>
+                <div>
+                  <span className="inline-flex items-center rounded-full bg-[rgba(15,157,88,0.1)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[color:var(--success)]">
+                    Analysis ready
+                  </span>
+                  <h4 className="mt-3 text-[1.05rem] font-semibold tracking-[-0.03em] text-[color:var(--text)]">
+                    Review your score and next best improvement
+                  </h4>
+                  <p className="mt-2 max-w-[62ch] text-sm leading-6 text-[color:var(--muted)]">
+                    Your result is ready. The result card will open next.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <span className="inline-flex items-center rounded-full bg-[rgba(31,94,255,0.1)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[color:var(--accent)]">
+                  Processing
+                </span>
+                <h4 className="mt-3 text-[1.05rem] font-semibold tracking-[-0.03em] text-[color:var(--text)]">
+                  {titleFor(flow, state)}
+                </h4>
+                <p className="mt-2 max-w-[62ch] text-sm leading-6 text-[color:var(--muted)]">
+                  {subtitleFor(flow, state, error)}
+                </p>
+              </>
+            )}
           </div>
 
           {fileName ? (
@@ -207,27 +244,41 @@ export function ProcessingStatus({
           ) : null}
         </div>
 
-        <div
-          className="h-2.5 overflow-hidden rounded-full bg-[rgba(23,19,18,0.08)]"
-          aria-label={`Processing progress ${progress}%`}
-        >
-          <span
-            className="block h-full rounded-full bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-2)] transition-[width] duration-200 ease-out"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+          <div
+            className="h-2.5 overflow-hidden rounded-full bg-[rgba(23,19,18,0.08)]"
+            aria-label={`Processing progress ${progress}%`}
+          >
+            <span
+              className="block h-full rounded-full bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-2)] transition-[width] duration-200 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
 
-        <div className="rounded-2xl border border-[rgba(23,19,18,0.08)] bg-[rgba(255,255,255,0.72)] p-4">
-          <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[color:var(--muted)]">
-            Current step
-          </span>
-          <strong className="mt-2 block text-sm font-semibold text-[color:var(--text)]">
-            {currentStepLabel(flow, state)}
-          </strong>
-          <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
-            {helperTextFor(flow, state)}
-          </p>
-        </div>
+        {isCompleteState ? (
+          <div className="rounded-2xl border border-[rgba(15,157,88,0.16)] bg-[rgba(15,157,88,0.08)] p-4">
+            <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[color:var(--success)]">
+              Analysis ready
+            </span>
+            <strong className="mt-2 block text-sm font-semibold text-[color:var(--text)]">
+              Review your score and next best improvement
+            </strong>
+            <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
+              {helperTextFor(flow, state)}
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-[rgba(23,19,18,0.08)] bg-[rgba(255,255,255,0.72)] p-4">
+            <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[color:var(--muted)]">
+              Current step
+            </span>
+            <strong className="mt-2 block text-sm font-semibold text-[color:var(--text)]">
+              {currentStepLabel(flow, state)}
+            </strong>
+            <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
+              {helperTextFor(flow, state)}
+            </p>
+          </div>
+        )}
 
         <div className="relative">
           <div className="absolute left-2.5 top-3 bottom-3 w-px bg-[rgba(23,19,18,0.08)] sm:hidden" />
@@ -235,8 +286,8 @@ export function ProcessingStatus({
 
           <ol className="grid gap-2 sm:grid-cols-4 sm:gap-3" aria-label="Processing steps">
             {PROCESSING_STEP_ORDER.map((stage, index) => {
-              const isActive = index === activeStepIndex
-              const isComplete = activeStepIndex >= 0 && index < activeStepIndex
+              const isActive = !isCompleteState && index === activeStepIndex
+              const isComplete = isCompleteState || (activeStepIndex >= 0 && index < activeStepIndex)
 
               return (
                 <li
@@ -267,7 +318,7 @@ export function ProcessingStatus({
                       {PROCESSING_STEP_LABELS[stage]}
                     </span>
                     <span className="mt-0.5 block text-[11px] leading-4 text-[color:var(--muted)]">
-                      {isActive ? "Current" : isComplete ? "Completed" : "Upcoming"}
+                      {isComplete ? "Completed" : isActive ? "Current" : "Upcoming"}
                     </span>
                   </div>
                 </li>

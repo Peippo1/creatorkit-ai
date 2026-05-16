@@ -2,8 +2,7 @@ import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 
 import { enforceProxyRateLimit } from "@/lib/proxy-rate-limit"
-
-const BACKEND_BASE_URL = process.env.CREATORKIT_BACKEND_URL ?? "http://localhost:8000"
+import { serverEnv } from "@/lib/server-env"
 
 async function proxyRequest(
   request: NextRequest,
@@ -15,7 +14,7 @@ async function proxyRequest(
     return rateLimitResponse
   }
 
-  const targetUrl = new URL(BACKEND_BASE_URL)
+  const targetUrl = new URL(serverEnv.backendBaseUrl)
   targetUrl.pathname = `/${path.join("/")}`
   targetUrl.search = request.nextUrl.search
 

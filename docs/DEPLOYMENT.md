@@ -33,3 +33,6 @@ Use this as the quick reference before deploying the app to Vercel.
 2. Confirm Upstash env vars are set if you want distributed rate limiting enabled.
 3. Confirm the backend has persistent storage if you want session history and drafts to survive restarts.
 4. Confirm the live UI matches the current anonymous deployment mode.
+5. Confirm no secret uses a `NEXT_PUBLIC_` prefix and local `.env*` files are untracked.
+
+See [`security.md`](./security.md) for the full secret handling rules.

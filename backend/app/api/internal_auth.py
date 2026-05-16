@@ -5,14 +5,14 @@ import binascii
 import hashlib
 import hmac
 import json
-import os
 import time
 from dataclasses import dataclass
 
 from fastapi import HTTPException, status
 
+from ..core.env import INTERNAL_API_SECRET_ENV, get_internal_api_secret
+
 INTERNAL_ASSERTION_HEADER = "X-Creatorkit-Assertion"
-INTERNAL_API_SECRET_ENV = "CREATORKIT_INTERNAL_API_SECRET"
 INTERNAL_ASSERTION_TTL_SECONDS = 300
 
 
@@ -36,7 +36,7 @@ def _canonical_body_digest(body: bytes) -> str:
 
 
 def _internal_secret() -> bytes:
-    secret = os.getenv(INTERNAL_API_SECRET_ENV)
+    secret = get_internal_api_secret()
     if not secret:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

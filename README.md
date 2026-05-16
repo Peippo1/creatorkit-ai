@@ -55,6 +55,7 @@ npm run dev
 The Next.js proxy expects the backend at `http://localhost:8000` by default. You can override that server-side with `CREATORKIT_BACKEND_URL`.
 
 The deployment checklist lives in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+Secret handling rules live in [`docs/security.md`](docs/security.md).
 
 ## What the First Version Does
 

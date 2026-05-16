@@ -16,6 +16,7 @@ import {
 import { clearAnalysisSession, getAnalysisSessionId } from "@/lib/session"
 import { generateScriptDraft } from "@/lib/script-generator"
 import type { ProcessingFlow, ProcessingState, ProcessingStep } from "@/lib/processing"
+import { redactForLog } from "@/lib/redaction"
 import type {
   AnalyzeRequest,
   AnalyzeResponse,
@@ -32,6 +33,13 @@ import { ResultCard } from "./result-card"
 const AUTO_RESCORE_ENABLED = true
 const AUTO_RESCORE_DELAY_MS = 300
 const VIDEO_JOB_POLL_INTERVAL_MS = 2500
+const COMPLETION_HANDOFF_MS = 220
+
+type CompletionContext = {
+  flow: ProcessingFlow
+  step: ProcessingStep
+  fileName: string | null
+}
 
 const DEFAULT_FORM: AnalyzeRequest = {
   platform: "TikTok",
@@ -93,9 +101,16 @@ export function AnalysisWorkspace() {
   const draftGenerationTimerRef = useRef<number | null>(null)
   const processingCompletionTimerRef = useRef<number | null>(null)
   const processingResetTimerRef = useRef<number | null>(null)
+  const completionDismissTimerRef = useRef<number | null>(null)
   const videoJobTokenRef = useRef(0)
   const videoJobPollTimerRef = useRef<number | null>(null)
   const videoJobSnapshotRef = useRef<AnalyzeRequest | null>(null)
+  const resultStackRef = useRef<HTMLDivElement | null>(null)
+  const resultScrollRequestedRef = useRef(false)
+  const [completionContext, setCompletionContext] = useState<CompletionContext | null>(null)
+  const [completionHandoffPhase, setCompletionHandoffPhase] = useState<
+    "hidden" | "visible" | "settling"
+  >("hidden")
 
   useEffect(() => {
     setClientId(getAnalysisSessionId())
@@ -111,6 +126,9 @@ export function AnalysisWorkspace() {
       }
       if (processingResetTimerRef.current !== null) {
         window.clearTimeout(processingResetTimerRef.current)
+      }
+      if (completionDismissTimerRef.current !== null) {
+        window.clearTimeout(completionDismissTimerRef.current)
       }
       if (videoJobPollTimerRef.current !== null) {
         window.clearTimeout(videoJobPollTimerRef.current)
@@ -210,9 +228,9 @@ export function AnalysisWorkspace() {
 
   async function refreshHistory(nextClientId: string) {
     if (!hasSessionId(nextClientId)) {
-      console.warn("[AnalysisWorkspace] skipped history refresh without a valid session id", {
+      console.warn("[AnalysisWorkspace] skipped history refresh without a valid session id", redactForLog({
         clientId: nextClientId,
-      })
+      }))
       return
     }
 
@@ -229,9 +247,9 @@ export function AnalysisWorkspace() {
 
   async function refreshDrafts(nextClientId: string, preferredDraftId: number | null = null) {
     if (!hasSessionId(nextClientId)) {
-      console.warn("[AnalysisWorkspace] skipped drafts refresh without a valid session id", {
+      console.warn("[AnalysisWorkspace] skipped drafts refresh without a valid session id", redactForLog({
         clientId: nextClientId,
-      })
+      }))
       return
     }
 
@@ -270,12 +288,23 @@ export function AnalysisWorkspace() {
     }
   }
 
+  function clearCompletionDismissTimer() {
+    if (completionDismissTimerRef.current !== null) {
+      window.clearTimeout(completionDismissTimerRef.current)
+      completionDismissTimerRef.current = null
+    }
+  }
+
   function resetProcessingState() {
     videoJobTokenRef.current += 1
     clearVideoJobTimer()
     clearProcessingCompletionTimer()
     clearProcessingResetTimer()
+    clearCompletionDismissTimer()
     videoJobSnapshotRef.current = null
+    resultScrollRequestedRef.current = false
+    setCompletionContext(null)
+    setCompletionHandoffPhase("hidden")
     setProcessingState("idle")
     setProcessingFlow(null)
     setProcessingStep(null)
@@ -287,6 +316,10 @@ export function AnalysisWorkspace() {
     const nextSessionId = clientId ?? getAnalysisSessionId()
     if (!clientId) {
       setClientId(nextSessionId)
+    }
+
+    if (completionContext !== null) {
+      resetProcessingState()
     }
 
     if (!hasSessionId(nextSessionId)) {
@@ -306,10 +339,10 @@ export function AnalysisWorkspace() {
     setProcessingError(null)
     setVideoJobId(null)
     setAnalysisError(null)
-    setPendingAutoRescoreHook(null)
-    setAutoRescoreNote(null)
-    clearVideoJobTimer()
-    clearProcessingCompletionTimer()
+      setPendingAutoRescoreHook(null)
+      setAutoRescoreNote(null)
+      clearVideoJobTimer()
+      clearProcessingCompletionTimer()
 
     try {
       const upload = await requestUploadUrl(
@@ -429,6 +462,13 @@ export function AnalysisWorkspace() {
           clearVideoJobTimer()
           clearProcessingCompletionTimer()
           clearProcessingResetTimer()
+          setCompletionContext({
+            flow: "video",
+            step: "feedback",
+            fileName: videoFile?.name ?? null,
+          })
+          setCompletionHandoffPhase("visible")
+          resultScrollRequestedRef.current = true
           processingCompletionTimerRef.current = window.setTimeout(() => {
             if (token !== videoJobTokenRef.current) {
               return
@@ -518,13 +558,17 @@ export function AnalysisWorkspace() {
       setClientId(nextSessionId)
     }
 
+    if (completionContext !== null) {
+      resetProcessingState()
+    }
+
     if (!hasSessionId(nextSessionId)) {
       const message = "Unable to analyze draft: missing session identifier"
       setAnalysisError(message)
-      console.warn("[AnalysisWorkspace] skipped analysis without a valid session id", {
+      console.warn("[AnalysisWorkspace] skipped analysis without a valid session id", redactForLog({
         clientId: nextSessionId,
         draft: nextDraft,
-      })
+      }))
       return
     }
 
@@ -550,6 +594,13 @@ export function AnalysisWorkspace() {
       await refreshHistory(nextSessionId)
       clearProcessingCompletionTimer()
       clearProcessingResetTimer()
+      setCompletionContext({
+        flow: "analysis",
+        step: "feedback",
+        fileName: null,
+      })
+      setCompletionHandoffPhase("visible")
+      resultScrollRequestedRef.current = true
       processingCompletionTimerRef.current = window.setTimeout(() => {
         setProcessingState("complete")
         setProcessingFlow("analysis")
@@ -567,11 +618,11 @@ export function AnalysisWorkspace() {
       setProcessingFlow("analysis")
       setProcessingStep("score")
       setProcessingError(message)
-      console.error("[AnalysisWorkspace] analyze draft failed", {
+      console.error("[AnalysisWorkspace] analyze draft failed", redactForLog({
         message,
         clientId: nextSessionId,
         draft: nextDraft,
-      })
+      }))
     } finally {
       setPendingAutoRescoreHook(null)
       setAutoRescoreNote(null)
@@ -581,7 +632,7 @@ export function AnalysisWorkspace() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (processingState !== "idle") {
+    if (processingState !== "idle" || completionContext !== null) {
       resetProcessingState()
     }
     await runAnalysis(form)
@@ -678,6 +729,20 @@ export function AnalysisWorkspace() {
   }
 
   const isProcessingActive = processingState !== "idle"
+  const isCompletionHandoffVisible = completionContext !== null
+  const showProcessingStatus = isProcessingActive || isCompletionHandoffVisible
+  const visibleProcessingState =
+    processingState === "idle" && completionContext !== null ? "complete" : processingState
+  const visibleProcessingFlow =
+    processingState === "idle" && completionContext !== null
+      ? completionContext.flow
+      : (processingFlow ?? "analysis")
+  const visibleProcessingStep =
+    processingState === "idle" && completionContext !== null ? completionContext.step : processingStep
+  const visibleProcessingFileName =
+    processingState === "idle" && completionContext !== null
+      ? completionContext.fileName
+      : (videoFile?.name ?? null)
 
   function retryProcessing() {
     if (processingFlow === "video") {
@@ -702,6 +767,10 @@ export function AnalysisWorkspace() {
   function handleGenerateScript() {
     if (isSubmitting || isSavingDraft || isGeneratingScript || isProcessingActive) {
       return
+    }
+
+    if (completionContext !== null) {
+      resetProcessingState()
     }
 
     setIsGeneratingScript(true)
@@ -742,6 +811,13 @@ export function AnalysisWorkspace() {
       setAutoRescoreNote(null)
       setAnalysisError(null)
       setIsGeneratingScript(false)
+      setCompletionContext({
+        flow: "script",
+        step: "feedback",
+        fileName: null,
+      })
+      setCompletionHandoffPhase("visible")
+      resultScrollRequestedRef.current = true
       processingCompletionTimerRef.current = window.setTimeout(() => {
         setProcessingState("complete")
         setProcessingFlow("script")
@@ -758,6 +834,48 @@ export function AnalysisWorkspace() {
 
   const canRescoreDraft =
     Boolean(result && analyzedHook && form.hook.trim() !== analyzedHook.trim())
+
+  useEffect(() => {
+    if (processingState !== "idle" || completionContext === null) {
+      return
+    }
+
+    if (completionHandoffPhase === "visible") {
+      setCompletionHandoffPhase("settling")
+    }
+
+    clearCompletionDismissTimer()
+    completionDismissTimerRef.current = window.setTimeout(() => {
+      setCompletionContext(null)
+      setCompletionHandoffPhase("hidden")
+      completionDismissTimerRef.current = null
+    }, COMPLETION_HANDOFF_MS)
+
+    return () => {
+      clearCompletionDismissTimer()
+    }
+  }, [completionContext, completionHandoffPhase, processingState])
+
+  useEffect(() => {
+    if (
+      processingState === "idle" &&
+      completionContext === null &&
+      completionHandoffPhase === "hidden" &&
+      resultScrollRequestedRef.current &&
+      resultStackRef.current
+    ) {
+      const reduceMotion =
+        window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false
+
+      window.requestAnimationFrame(() => {
+        resultStackRef.current?.scrollIntoView({
+          behavior: reduceMotion ? "auto" : "smooth",
+          block: "start",
+        })
+      })
+      resultScrollRequestedRef.current = false
+    }
+  }, [completionContext, completionHandoffPhase, processingState])
 
   useEffect(() => {
     if (!AUTO_RESCORE_ENABLED || !pendingAutoRescoreHook || isSubmitting || isProcessingActive) {
@@ -799,7 +917,7 @@ export function AnalysisWorkspace() {
         onVideoSelect={handleVideoSelect}
       />
 
-      <div className="result-stack">
+      <div className="result-stack" ref={resultStackRef}>
         {analysisError ? (
           <aside className="panel error-panel" role="alert">
             <h2>Analysis failed</h2>
@@ -811,14 +929,26 @@ export function AnalysisWorkspace() {
           </aside>
         ) : null}
 
-        <ProcessingStatus
-          state={processingState}
-          flow={processingFlow ?? "analysis"}
-          step={processingStep}
-          fileName={videoFile?.name ?? null}
-          error={processingError}
-          onRetry={retryProcessing}
-        />
+        {showProcessingStatus ? (
+          <div
+            className={[
+              "overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out",
+              isCompletionHandoffVisible && processingState === "idle"
+                ? "max-h-0 -translate-y-2 opacity-0"
+                : "max-h-[40rem] translate-y-0 opacity-100",
+            ].join(" ")}
+            aria-hidden={isCompletionHandoffVisible && processingState === "idle"}
+          >
+            <ProcessingStatus
+              state={visibleProcessingState}
+              flow={visibleProcessingFlow}
+              step={visibleProcessingStep}
+              fileName={visibleProcessingFileName}
+              error={processingError}
+              onRetry={retryProcessing}
+            />
+          </div>
+        ) : null}
 
         <ResultCard
           result={result}

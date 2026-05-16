@@ -234,9 +234,17 @@ export function ResultCard({
   const hookLabels = ["Curiosity-led", "Direct", "Authority"]
   const rescoreDisabled = !canRescore || isProcessingActive
   const rescoreButtonClass = canRescore && !isProcessingActive ? "button" : "button button--ghost"
+  const resultMotionClass = isProcessingVisible
+    ? "pointer-events-none translate-y-2 opacity-0"
+    : "translate-y-0 opacity-100"
 
   return (
-    <aside className="panel result-card">
+    <aside
+      className={[
+        "panel result-card transform-gpu transition-[opacity,transform] duration-300 ease-out",
+        resultMotionClass,
+      ].join(" ")}
+    >
       <div className="result-top">
         <div>
           <span className="panel-label">Live result</span>

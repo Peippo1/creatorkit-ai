@@ -12,6 +12,7 @@ import type {
   SavedDraftsResponse,
   SessionClearResponse,
 } from "@/lib/types"
+import { redactForLog } from "@/lib/redaction"
 
 const API_BASE_PATH = "/api/backend"
 
@@ -112,7 +113,7 @@ async function requestBackend(
 
   if (!response.ok) {
     const errorInfo = await readErrorMessage(response, options.fallbackMessage)
-    console.error("[CreatorKit API] request failed", {
+    console.error("[CreatorKit API] request failed", redactForLog({
       endpoint: options.endpointLabel,
       path: `${API_BASE_PATH}${path}`,
       method: init.method ?? "GET",
@@ -120,7 +121,7 @@ async function requestBackend(
       statusText: response.statusText,
       responseBody: errorInfo.body,
       message: errorInfo.message,
-    })
+    }))
     throw new Error(errorInfo.message)
   }
 

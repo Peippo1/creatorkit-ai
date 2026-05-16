@@ -2,6 +2,8 @@ import { Ratelimit } from "@upstash/ratelimit"
 import { Redis } from "@upstash/redis"
 import { NextResponse, type NextRequest } from "next/server"
 
+import { serverEnv } from "@/lib/server-env"
+
 type RateLimitRule = {
   scope: string
   limit: number
@@ -50,10 +52,12 @@ const RATE_LIMIT_RULES: Record<string, RateLimitRule> = {
   },
 }
 
-const redis =
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-    ? Redis.fromEnv()
-    : null
+const redis = serverEnv.hasRedisRateLimit
+  ? new Redis({
+      url: serverEnv.upstashRedisRestUrl as string,
+      token: serverEnv.upstashRedisRestToken as string,
+    })
+  : null
 
 const limiterCache = new Map<string, Ratelimit>()
 let warnedMissingRedis = false
@@ -115,7 +119,7 @@ function getClientId(request: NextRequest): string {
 
 function getLimiter(rule: RateLimitRule): Ratelimit | null {
   if (!redis) {
-    if (!warnedMissingRedis && process.env.NODE_ENV === "production") {
+    if (!warnedMissingRedis && serverEnv.nodeEnv === "production") {
       console.warn(
         "[CreatorKit Proxy] Upstash Redis env vars are missing; distributed rate limiting is disabled.",
       )

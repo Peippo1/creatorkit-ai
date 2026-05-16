@@ -42,6 +42,8 @@ See [`docs/DEPLOYMENT.md`](./DEPLOYMENT.md) for the current Vercel checklist cov
 - `CREATORKIT_SESSION_RETENTION_LIMIT`
 - `CREATORKIT_SESSION_RETENTION_DAYS`
 
+Secret handling rules and validation behavior are documented in [`docs/security.md`](./security.md).
+
 ## Frontend
 
 - Next.js App Router scaffold
